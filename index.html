@@ -103,7 +103,7 @@
                     <a href="#" id="forgotPasswordLink">Esqueceu sua senha?</a>
                 </div>
 
-                <button type="submit" id="submitBtn" class="login-btn">Entrar</button>
+                <button type="button" id="submitBtn" class="login-btn">Entrar</button>
             </form>
 
             <div class="divider">
@@ -133,22 +133,13 @@
     <div id="toastContainer" class="toast-container"></div>
 
     <script>
-        // Detecta retorno do OAuth (Google redireciona com #access_token na URL)
+        // Detecta retorno do OAuth do Google (#access_token na URL)
         (async () => {
             const hash = window.location.hash;
-            if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-                // Supabase processa o hash automaticamente via getSession()
-                const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (hash && hash.includes('access_token')) {
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
-                    // Limpa o hash da URL e vai para o player
                     window.location.replace('player.html');
-                    return;
-                }
-                if (error || hash.includes('error')) {
-                    const params = new URLSearchParams(hash.replace('#', ''));
-                    const msg = params.get('error_description') || 'Erro no login com Google';
-                    // Remove hash e mostra erro
-                    history.replaceState(null, '', window.location.pathname);
                 }
             }
         })();
@@ -212,8 +203,10 @@
         });
 
         // --- Submissão do formulário ---
+        // Usando click no botão em vez de form submit — mais confiável em PWA/mobile
         const authForm = document.getElementById('authForm');
-        authForm.addEventListener('submit', async (e) => {
+        authForm.addEventListener('submit', (e) => e.preventDefault()); // bloqueia reload padrão
+        document.getElementById('submitBtn').addEventListener('click', async (e) => {
             e.preventDefault();
 
             if (isLoginMode) {
@@ -270,25 +263,22 @@
                     return;
                 }
                 if (data.user) {
-                    // Tenta criar perfil (se falhar, não interrompe)
-                    await supabaseClient
-                        .from('profiles')
-                        .insert([{ id: data.user.id, full_name: name, email: email }])
-                        .catch(e => console.warn('Erro ao criar perfil:', e));
-                    
-                    // Mensagem de sucesso em português
-                    showToast('✅ Cadastro realizado! Enviamos um e‑mail de confirmação. Verifique sua caixa de entrada.', 'success');
-                    
-                    // Limpa os campos do cadastro
+                    // Perfil será criado automaticamente pelo ensureProfileExists()
+                    // no player-core.js quando o usuário fizer login após confirmar o email.
+                    // Não tentamos criar aqui para evitar erro de RLS antes da confirmação.
+
+                    showToast('Cadastro realizado! Verifique seu e-mail para confirmar a conta.', 'success');
+
+                    // Limpa os campos
                     document.getElementById('signupName').value = '';
                     document.getElementById('signupEmail').value = '';
                     document.getElementById('signupPassword').value = '';
                     document.getElementById('signupConfirmPassword').value = '';
-                    
-                    // Volta para o modo "Entrar" e limpa os campos de login
+
+                    // Volta para o modo login
                     isLoginMode = true;
                     updateUIMode();
-                    document.getElementById('loginEmail').value = '';
+                    document.getElementById('loginEmail').value = email;
                     document.getElementById('loginPassword').value = '';
                 }
             }
