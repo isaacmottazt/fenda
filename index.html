@@ -49,7 +49,7 @@
         // Se já tiver sessão ativa, vai direto pro player sem apagar nada
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
-            window.location.href = 'player.html';
+            window.location.replace('player.html');
             return;
         }
         // Sem sessão: remove apenas tokens do Supabase, preserva cache do app (fenda_cache_*)
@@ -217,7 +217,7 @@
                         .single();
                     localStorage.setItem('user_name', profile?.full_name || email.split('@')[0]);
                     localStorage.setItem('user_email', email);
-                    window.location.href = 'player.html';
+                    window.location.replace('player.html');
                 } else {
                     showToast('Por favor, verifique seu e-mail antes de fazer login.', 'warning');
                     await supabaseClient.auth.signOut();
@@ -313,7 +313,7 @@
         // Verifica se já está logado (redireciona)
         (async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) window.location.href = 'player.html';
+            if (session) window.location.replace('player.html');
         })();
 
         // Registra o service worker para habilitar funcionamento offline (PWA)
