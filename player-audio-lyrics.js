@@ -46,6 +46,18 @@ function initAudioAndLyricsEngine() {
         }
     });
 
+    // Mantém o playbackState sincronizado — crítico para o Android
+    // não matar o processo quando o app está em background
+    DOM.audio.addEventListener('play', () => {
+        if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing';
+    });
+    DOM.audio.addEventListener('pause', () => {
+        if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused';
+    });
+    DOM.audio.addEventListener('waiting', () => {
+        if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing';
+    });
+
     if (DOM.playerBottomPlayBtn) DOM.playerBottomPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlayMusic(); });
     if (DOM.bigPlayBtn) DOM.bigPlayBtn.addEventListener('click', () => togglePlayMusic());
 
@@ -526,25 +538,54 @@ function updatePlayerUIState() {
 
 function updateMediaSession(music) {
     if (!navigator.mediaSession) return;
-    
+
+    // Artwork seguro: sem cover usa um fallback vazio
+    const artworkList = music.cover ? [
+        { src: music.cover, sizes: '96x96',   type: 'image/jpeg' },
+        { src: music.cover, sizes: '128x128', type: 'image/jpeg' },
+        { src: music.cover, sizes: '192x192', type: 'image/jpeg' },
+        { src: music.cover, sizes: '512x512', type: 'image/jpeg' },
+    ] : [];
+
     navigator.mediaSession.metadata = new MediaMetadata({
-        title: music.title,
-        artist: music.artist,
-        album: 'Fenda Music',
-        artwork: [
-            { src: music.cover, sizes: '96x96', type: 'image/jpeg' },
-            { src: music.cover, sizes: '128x128', type: 'image/jpeg' },
-            { src: music.cover, sizes: '192x192', type: 'image/jpeg' },
-            { src: music.cover, sizes: '256x256', type: 'image/jpeg' }
-        ]
+        title:   music.title  || 'Fenda Music',
+        artist:  music.artist || '',
+        album:   'Fenda Music',
+        artwork: artworkList,
     });
 
-    navigator.mediaSession.setActionHandler('play', () => togglePlayMusic());
-    navigator.mediaSession.setActionHandler('pause', () => togglePlayMusic());
+    // playbackState diz ao Android que o app está tocando ativamente
+    // — sem isso o sistema mata o processo após alguns minutos em background
+    navigator.mediaSession.playbackState = 'playing';
+
+    navigator.mediaSession.setActionHandler('play', () => {
+        if (DOM.audio) DOM.audio.play().catch(() => {});
+        navigator.mediaSession.playbackState = 'playing';
+        AppState.playing = true;
+        if (typeof updatePlayerUIState === 'function') updatePlayerUIState();
+    });
+    navigator.mediaSession.setActionHandler('pause', () => {
+        if (DOM.audio) DOM.audio.pause();
+        navigator.mediaSession.playbackState = 'paused';
+        AppState.playing = false;
+        if (typeof updatePlayerUIState === 'function') updatePlayerUIState();
+    });
+    navigator.mediaSession.setActionHandler('stop', () => {
+        if (DOM.audio) DOM.audio.pause();
+        navigator.mediaSession.playbackState = 'none';
+        AppState.playing = false;
+        if (typeof updatePlayerUIState === 'function') updatePlayerUIState();
+    });
     navigator.mediaSession.setActionHandler('previoustrack', () => handlePrevTrack());
-    navigator.mediaSession.setActionHandler('nexttrack', () => handleNextTrack());
+    navigator.mediaSession.setActionHandler('nexttrack',     () => handleNextTrack());
     navigator.mediaSession.setActionHandler('seekto', (details) => {
         if (DOM.audio) DOM.audio.currentTime = details.seekTime;
+    });
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        if (DOM.audio) DOM.audio.currentTime = Math.max(0, DOM.audio.currentTime - (details.seekOffset || 10));
+    });
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        if (DOM.audio) DOM.audio.currentTime = Math.min(DOM.audio.duration || 0, DOM.audio.currentTime + (details.seekOffset || 10));
     });
 }
 
