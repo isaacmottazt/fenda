@@ -879,14 +879,34 @@ async function initApp() {
     if (typeof window.renderQueue === 'function') window.renderQueue();
     if (typeof window.initSearch === 'function') window.initSearch();
 
-    // Restaura a música que estava tocando antes do app fechar/recarregar
-    if (typeof window.restorePlayerSession === 'function') {
-        await window.restorePlayerSession();
-    }
-
-    // Inicia a persistência periódica do estado do player
+    // Inicia persistencia de sessao
     if (typeof window.initSessionPersistence === 'function') {
         window.initSessionPersistence();
+    }
+
+    // Tenta restaurar a musica que estava tocando
+    const tryRestore = async () => {
+        if (AppState.musics.length === 0) return false;
+        if (typeof window.restorePlayerSession === 'function') {
+            return await window.restorePlayerSession();
+        }
+        return false;
+    };
+
+    // Tenta agora (musicas do cache ja disponíveis)
+    const restoredNow = await tryRestore();
+
+    // Se nao conseguiu (sem cache), espera Supabase carregar (ate 8s)
+    if (!restoredNow) {
+        let attempts = 0;
+        const poll = setInterval(async () => {
+            attempts++;
+            if (AppState.musics.length > 0) {
+                clearInterval(poll);
+                await tryRestore();
+            }
+            if (attempts >= 16) clearInterval(poll);
+        }, 500);
     }
 }
 
