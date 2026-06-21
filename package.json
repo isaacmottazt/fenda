@@ -1,0 +1,16 @@
+{
+  "name": "fd",
+  "version": "1.0.0",
+  "description": "Fenda Music - Your music player",
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "test": "echo 'No tests specified'"
+  },
+  "dependencies": {
+    "@vercel/speed-insights": "^1.1.0"
+  },
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
