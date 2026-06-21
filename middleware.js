@@ -3,7 +3,7 @@
 // Rotas limpas e assets passam normalmente
 
 export const config = {
-    matcher: ['/((?!_next|_vercel|fonts|icons|sw\\.js|manifest\\.json|.*\\.css|.*\\.js|.*\\.png|.*\\.jpg|.*\\.webp|.*\\.ico|.*\\.woff2|.*\\.mp3|.*\\.lrc).*)'],
+    matcher: ['/((?!_next|_vercel|fonts|icons|sw\\.js|manifest\\.json|.*\\.css|.*\\.js|.*\\.png|.*\\.jpg|.*\\.webp|.*\\.ico|.*\\.woff2|.*\\.mp3|.*\\.lrc|.*\\.html).*)'],
 };
 
 export default function middleware(request) {
