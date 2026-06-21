@@ -5,8 +5,11 @@
     { "source": "/busca",          "destination": "/player.html" },
     { "source": "/biblioteca",     "destination": "/player.html" },
     { "source": "/perfil",         "destination": "/player.html" },
-    { "source": "/player",         "destination": "/player.html" },
     { "source": "/reset-password", "destination": "/reset-password.html" }
+  ],
+  "redirects": [
+    { "source": "/player", "destination": "/player.html", "permanent": false },
+    { "source": "/index",  "destination": "/index.html",  "permanent": false }
   ],
   "headers": [
     {
@@ -20,3 +23,4 @@
     }
   ]
 }
+
