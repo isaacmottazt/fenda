@@ -49,7 +49,7 @@
         // Se já tiver sessão ativa, vai direto pro player sem apagar nada
         const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
-            window.location.replace('/player.html');
+            window.location.href = 'player.html';
             return;
         }
         // Sem sessão: remove apenas tokens do Supabase, preserva cache do app (fenda_cache_*)
@@ -186,7 +186,7 @@
         document.getElementById('googleLoginBtn').addEventListener('click', async () => {
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
-                options: { redirectTo: 'https://fendamusic.com.br/index.html' }
+                options: { redirectTo: window.location.origin + '/player.html' }
             });
             if (error) showToast(error.message, 'danger');
         });
@@ -217,7 +217,7 @@
                         .single();
                     localStorage.setItem('user_name', profile?.full_name || email.split('@')[0]);
                     localStorage.setItem('user_email', email);
-                    window.location.replace('/player.html');
+                    window.location.href = 'player.html';
                 } else {
                     showToast('Por favor, verifique seu e-mail antes de fazer login.', 'warning');
                     await supabaseClient.auth.signOut();
@@ -313,15 +313,27 @@
         // Verifica se já está logado (redireciona)
         (async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) window.location.replace('/player.html');
+            if (session) window.location.href = 'player.html';
         })();
 
         // Registra o service worker para habilitar funcionamento offline (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('[SW] Registrado com sucesso:', reg.scope))
-                    .catch(err => console.warn('[SW] Falha ao registrar:', err));
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('[SW] Registrado:', reg.scope);
+                        // Força atualização se há SW esperando
+                        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                        reg.addEventListener('updatefound', () => {
+                            const sw = reg.installing;
+                            sw.addEventListener('statechange', () => {
+                                if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                                    sw.postMessage({ type: 'SKIP_WAITING' });
+                                }
+                            });
+                        });
+                    })
+                    .catch(err => console.warn('[SW] Falha:', err));
             });
         }
     </script>

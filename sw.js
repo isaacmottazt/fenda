@@ -1,8 +1,10 @@
-// Fenda Music — Service Worker v11
-// FORCE UPDATE — destrói todos os caches anteriores
-const CACHE_NAME = 'fenda-music-v11';
+// Fenda Music — Service Worker v12
+const CACHE_NAME = 'fenda-v12';
 
-const SHELL_ASSETS = [
+const PLAYER_ROUTES = new Set(['/player.html', '/player', '/inicio', '/busca', '/biblioteca', '/perfil']);
+const LOGIN_ROUTES  = new Set(['/index.html', '/login', '/']);
+
+const SHELL = [
   '/player.html', '/index.html', '/reset-password.html', '/manifest.json',
   '/base.css', '/inicio.css', '/busca.css', '/biblioteca.css',
   '/perfil.css', '/login.css', '/supabase-config.js', '/search.js',
@@ -10,122 +12,75 @@ const SHELL_ASSETS = [
   '/player-menus-core.js', '/player-music-actions.js', '/player-playlists.js',
 ];
 
-const PLAYER_ROUTES = ['/player.html', '/player', '/inicio', '/busca', '/biblioteca', '/perfil'];
-const LOGIN_ROUTES  = ['/index.html', '/login', '/'];
+// Aceita mensagem SKIP_WAITING do cliente
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
-self.addEventListener('install', (event) => {
-  // Força ativação imediata sem esperar abas fecharem
+self.addEventListener('install', e => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      Promise.allSettled(SHELL_ASSETS.map(url => cache.add(url).catch(() => {})))
-    )
+  e.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(c => Promise.allSettled(SHELL.map(u => c.add(u).catch(() => {}))))
   );
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    // Deleta TODOS os caches antigos sem exceção
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => {
-        console.log('[SW] Deletando cache antigo:', k);
-        return caches.delete(k);
-      }))
-    ).then(() => {
-      // Toma controle de todas as abas abertas imediatamente
-      return self.clients.claim();
-    }).then(() => {
-      // Força reload em todos os clientes para aplicar o novo SW
-      return self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(client => client.navigate(client.url));
-      });
-    })
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
   const path = url.pathname;
 
-  // Supabase: sempre rede
+  // Supabase: rede direta
   if (url.hostname.includes('supabase.co')) {
-    event.respondWith(
-      fetch(event.request).catch(() =>
-        new Response(JSON.stringify([]), { headers: { 'Content-Type': 'application/json' } })
-      )
-    );
+    e.respondWith(fetch(e.request).catch(() => new Response('[]')));
     return;
   }
 
   // CDN: cache-first
-  if (url.hostname === 'cdn.jsdelivr.net' ||
-      url.hostname === 'fonts.googleapis.com' ||
-      url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match(event.request).then(cached => cached ||
-          fetch(event.request).then(res => {
-            if (res.ok) cache.put(event.request, res.clone());
-            return res;
-          })
-        )
-      )
+  if (url.hostname === 'cdn.jsdelivr.net' || url.hostname.includes('googleapis') || url.hostname.includes('gstatic')) {
+    e.respondWith(
+      caches.match(e.request).then(c => c || fetch(e.request).then(r => {
+        if (r.ok) caches.open(CACHE_NAME).then(cache => cache.put(e.request, r.clone()));
+        return r;
+      }))
     );
     return;
   }
 
   if (url.origin === self.location.origin) {
-    // Rotas do player
-    if (PLAYER_ROUTES.includes(path)) {
-      event.respondWith(
-        caches.open(CACHE_NAME).then(cache =>
-          cache.match('/player.html').then(cached => {
-            if (cached) return cached;
-            return fetch('/player.html').then(res => {
-              if (res.ok) cache.put('/player.html', res.clone());
-              return res;
-            });
-          })
-        )
+    // Rotas do player → /player.html
+    if (PLAYER_ROUTES.has(path)) {
+      e.respondWith(
+        caches.match('/player.html').then(c => c || fetch('/player.html'))
       );
       return;
     }
-
-    // Rotas de login
-    if (LOGIN_ROUTES.includes(path)) {
-      event.respondWith(
-        caches.open(CACHE_NAME).then(cache =>
-          cache.match('/index.html').then(cached => {
-            if (cached) return cached;
-            return fetch('/index.html').then(res => {
-              if (res.ok) cache.put('/index.html', res.clone());
-              return res;
-            });
-          })
-        )
+    // Rotas de login → /index.html  
+    if (LOGIN_ROUTES.has(path)) {
+      e.respondWith(
+        caches.match('/index.html').then(c => c || fetch('/index.html'))
       );
       return;
     }
-
-    // Outros arquivos: cache-first
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match(event.request).then(cached => {
-          if (cached) {
-            fetch(event.request).then(res => {
-              if (res.ok) cache.put(event.request, res.clone());
-            }).catch(() => {});
-            return cached;
-          }
-          return fetch(event.request).then(res => {
-            if (res.ok) cache.put(event.request, res.clone());
-            return res;
-          }).catch(() => cache.match('/player.html'));
-        })
-      )
+    // Demais arquivos: cache-first
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const network = fetch(e.request).then(r => {
+          if (r.ok) caches.open(CACHE_NAME).then(c => c.put(e.request, r.clone()));
+          return r;
+        }).catch(() => cached);
+        return cached || network;
+      })
     );
     return;
   }
 
-  event.respondWith(fetch(event.request));
+  e.respondWith(fetch(e.request));
 });
