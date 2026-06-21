@@ -3,7 +3,6 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/login",          "destination": "/index.html" },
-    { "source": "/player",         "destination": "/player.html" },
     { "source": "/inicio",         "destination": "/player.html" },
     { "source": "/busca",          "destination": "/player.html" },
     { "source": "/biblioteca",     "destination": "/player.html" },
@@ -11,8 +10,8 @@
     { "source": "/reset-password", "destination": "/reset-password.html" }
   ],
   "redirects": [
-    { "source": "/index.html",          "destination": "/login",          "permanent": true },
-    { "source": "/player.html",         "destination": "/inicio",         "permanent": true },
+    { "source": "/index.html",          "destination": "/login",   "permanent": true },
+    { "source": "/player.html",         "destination": "/inicio",  "permanent": true },
     { "source": "/reset-password.html", "destination": "/reset-password", "permanent": true }
   ],
   "headers": [
