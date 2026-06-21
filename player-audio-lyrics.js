@@ -38,11 +38,13 @@ function initAudioAndLyricsEngine() {
     });
 
     DOM.audio.addEventListener('ended', () => {
-        if (AppState.isRepeat) {
+        if (AppState.repeatMode === 2) {
+            // repeat-one: reinicia a música atual
             DOM.audio.currentTime = 0;
             DOM.audio.play().catch(()=>{});
         } else {
             handleNextTrack();
+            // repeat-all é tratado no handleNextTrack (a fila se reconstrói ao esgotar)
         }
     });
 
@@ -133,12 +135,33 @@ function initAudioAndLyricsEngine() {
         DOM.shuffleBtn.addEventListener('click', () => {
             AppState.isShuffle = !AppState.isShuffle;
             DOM.shuffleBtn.classList.toggle('active', AppState.isShuffle);
+
+            // Ao ligar: embaralha a autoQueue mantendo a música atual
+            // Ao desligar: restaura a ordem original a partir da posição atual
+            const ctx = AppState.playContext;
+            const trackList = AppState.isShuffle
+                ? (ctx?.trackList?.length > 0 ? ctx.trackList : AppState.musics)
+                : (AppState._originalTrackList?.length > 0 ? AppState._originalTrackList : AppState.musics);
+
+            AppState.autoQueue = buildAutoQueue(AppState.currentMusicId, trackList, AppState.isShuffle);
+            if (typeof window.renderQueuePanel === 'function') window.renderQueuePanel();
         });
     }
     if (DOM.repeatBtn) {
         DOM.repeatBtn.addEventListener('click', () => {
-            AppState.isRepeat = !AppState.isRepeat;
-            DOM.repeatBtn.classList.toggle('active', AppState.isRepeat);
+            // Cicla: 0 (off) → 1 (repeat-all) → 2 (repeat-one) → 0
+            AppState.repeatMode = (AppState.repeatMode + 1) % 3;
+            const icon = DOM.repeatBtn.querySelector('.material-symbols-rounded');
+            if (AppState.repeatMode === 0) {
+                DOM.repeatBtn.classList.remove('active');
+                if (icon) icon.textContent = 'repeat';
+            } else if (AppState.repeatMode === 1) {
+                DOM.repeatBtn.classList.add('active');
+                if (icon) icon.textContent = 'repeat';
+            } else {
+                DOM.repeatBtn.classList.add('active');
+                if (icon) icon.textContent = 'repeat_one';
+            }
         });
     }
 

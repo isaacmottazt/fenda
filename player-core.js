@@ -9,7 +9,8 @@ const AppState = {
     favorites: new Set(),
     userPlaylists: [],
     isShuffle: false,
-    isRepeat: false,
+    repeatMode: 0,       // 0 = off, 1 = repeat-all, 2 = repeat-one
+    _originalTrackList: [], // ordem original antes do shuffle
     currentPlaylistFilter: null,
     selectedTrackForMenu: null,
     selectedPlaylistForMenu: null,
@@ -403,6 +404,27 @@ async function toggleOfflineMusic(music) {
 
 // ===== FILA AUTOMÁTICA =====
 
+// Embaralhamento estilo Spotify: distribui artistas para não repetirem seguidos
+function _shuffleSpread(tracks) {
+    if (tracks.length <= 1) return [...tracks];
+    const arr = [...tracks];
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i].artist === arr[i - 1].artist) {
+            for (let j = i + 1; j < Math.min(i + 4, arr.length); j++) {
+                if (arr[j].artist !== arr[i - 1].artist) {
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                    break;
+                }
+            }
+        }
+    }
+    return arr;
+}
+
 // Gera a fila automática baseada no contexto atual
 function buildAutoQueue(currentMusicId, trackList, isShuffle) {
     if (!trackList || trackList.length === 0) return [];
@@ -411,22 +433,18 @@ function buildAutoQueue(currentMusicId, trackList, isShuffle) {
     let remaining;
 
     if (isShuffle) {
-        remaining = trackList.filter(m => m.id !== currentMusicId);
-        for (let i = remaining.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [remaining[i], remaining[j]] = [remaining[j], remaining[i]];
-        }
+        return _shuffleSpread(trackList.filter(m => m.id !== currentMusicId));
     } else {
         const after  = trackList.slice(currentIdx + 1);
         const before = trackList.slice(0, currentIdx);
-        remaining = [...after, ...before];
+        return [...after, ...before];
     }
-
-    return remaining;
 }
 
 // Atualiza o contexto e regenera a fila automática
+// Salva a ordem original antes do shuffle para poder restaurar ao desligar
 function setPlayContext(source, trackList, playlistId = null) {
+    AppState._originalTrackList = [...trackList];
     AppState.playContext = { source, playlistId, trackList: [...trackList] };
     AppState.autoQueue = buildAutoQueue(AppState.currentMusicId, trackList, AppState.isShuffle);
     if (typeof window.renderQueuePanel === 'function') window.renderQueuePanel();
@@ -592,41 +610,32 @@ function handleNextTrack() {
 
     const { source, trackList } = AppState.playContext;
     const allMusics = AppState.musics;
-    const isPlaylistCtx = source === 'playlist' || source === 'favorites';
 
-    // 2. Contexto de PLAYLIST: esgota a playlist antes de sair dela
-    if (isPlaylistCtx && trackList && trackList.length > 0) {
-        if (AppState.autoQueue.length > 0) {
-            playMusicTrack(AppState.autoQueue.shift());
-            return;
-        }
-        // Playlist acabou → toca músicas que não estão na playlist, em ordem aleatória
-        const playlistIds = new Set(trackList.map(m => m.id));
-        const outsideMusics = allMusics.filter(m => !playlistIds.has(m.id));
-        if (outsideMusics.length > 0) {
-            const shuffled = [...outsideMusics].sort(() => Math.random() - 0.5);
-            AppState.playContext = { source: 'random_after_playlist', playlistId: null, trackList: shuffled };
-            AppState.autoQueue = [...shuffled.slice(1)];
-            playMusicTrack(shuffled[0]);
-            return;
-        }
-        // Sem músicas fora da playlist: reinicia a playlist
-        AppState.autoQueue = buildAutoQueue(AppState.currentMusicId, trackList, AppState.isShuffle);
-        if (AppState.autoQueue.length > 0) { playMusicTrack(AppState.autoQueue.shift()); return; }
-    }
-
-    // 3. Contexto avulso (library, search, history, random): usa autoQueue
+    // 2. Tem próxima na autoQueue → toca
     if (AppState.autoQueue.length > 0) {
         playMusicTrack(AppState.autoQueue.shift());
         return;
     }
 
-    // 4. Fallback: reconstrói fila com todas as músicas e embaralha
+    // 3. Fila esgotou — repeat-all reinicia o contexto atual
+    if (AppState.repeatMode === 1) {
+        const list = trackList?.length > 0 ? trackList : allMusics;
+        AppState.autoQueue = buildAutoQueue(AppState.currentMusicId, list, AppState.isShuffle);
+        if (AppState.autoQueue.length > 0) playMusicTrack(AppState.autoQueue.shift());
+        return;
+    }
+
+    // 4. Autoplay universal: continua com músicas que ainda não tocaram no contexto atual
     if (allMusics.length === 0) return;
-    const others = allMusics.filter(m => m.id !== AppState.currentMusicId);
-    const shuffled = [...others].sort(() => Math.random() - 0.5);
-    AppState.autoQueue = shuffled.slice(1);
-    if (shuffled.length > 0) playMusicTrack(shuffled[0]);
+    const contextIds = new Set((trackList || []).map(m => m.id));
+    const played = new Set(_playbackHistory);
+    // Prefere músicas fora do contexto que ainda não tocaram; fallback para qualquer uma
+    let pool = allMusics.filter(m => m.id !== AppState.currentMusicId && !contextIds.has(m.id) && !played.has(m.id));
+    if (pool.length === 0) pool = allMusics.filter(m => m.id !== AppState.currentMusicId && !contextIds.has(m.id));
+    if (pool.length === 0) pool = allMusics.filter(m => m.id !== AppState.currentMusicId);
+    AppState.autoQueue = _shuffleSpread(pool);
+    AppState.playContext = { source: 'autoplay', playlistId: null, trackList: [...pool] };
+    if (AppState.autoQueue.length > 0) playMusicTrack(AppState.autoQueue.shift());
 }
 
 function handlePrevTrack() {
@@ -843,10 +852,6 @@ async function _fetchAllFromSupabase() {
     for (const m of allMusics) { if (!ids.has(m.id)) { ids.add(m.id); uniqueMusics.push(m); } }
     AppState.musics = uniqueMusics;
 
-    // Sincroniza e carrega artistas
-    if (typeof window.syncArtistsFromMusics === 'function') {
-        await window.syncArtistsFromMusics(AppState.musics);
-    }
     AppState.artists = typeof window.loadAllArtists === 'function'
         ? await window.loadAllArtists()
         : [];

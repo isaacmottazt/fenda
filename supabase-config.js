@@ -399,7 +399,8 @@ async function loadAllArtists() {
         const { data, error } = await supabaseClient
             .from('artists')
             .select('*')
-            .order('name');
+            .order('name')
+            .limit(1000);
         if (error) throw error;
         return data || [];
     } catch (e) {
