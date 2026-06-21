@@ -3,6 +3,7 @@
   "short_name": "Fenda Music",
   "description": "Sua música. Seu mundo.",
   "start_url": "./player.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0a0a0f",
@@ -22,10 +23,5 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [],
-  "categories": [
-    "music",
-    "entertainment"
-  ],
-  "scope": "./"
+  "categories": ["music", "entertainment"]
 }
