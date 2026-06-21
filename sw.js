@@ -1,30 +1,35 @@
-// Fenda Music — Service Worker v9
-const CACHE_NAME = 'fenda-music-v9';
+// Fenda Music — Service Worker v10
+const CACHE_NAME = 'fenda-music-v10';
 
 const SHELL_ASSETS = [
-  './player.html',
-  './index.html',
-  './reset-password.html',
-  './manifest.json',
-  './base.css',
-  './inicio.css',
-  './busca.css',
-  './biblioteca.css',
-  './perfil.css',
-  './login.css',
-  './supabase-config.js',
-  './search.js',
-  './player-core.js',
-  './player-ui.js',
-  './player-audio-lyrics.js',
-  './player-menus-core.js',
-  './player-music-actions.js',
-  './player-playlists.js',
+  '/player.html',
+  '/index.html',
+  '/reset-password.html',
+  '/manifest.json',
+  '/base.css',
+  '/inicio.css',
+  '/busca.css',
+  '/biblioteca.css',
+  '/perfil.css',
+  '/login.css',
+  '/supabase-config.js',
+  '/search.js',
+  '/player-core.js',
+  '/player-ui.js',
+  '/player-audio-lyrics.js',
+  '/player-menus-core.js',
+  '/player-music-actions.js',
+  '/player-playlists.js',
 ];
 
-// Rotas limpas que mapeiam para player.html
-const PLAYER_ROUTES = ['/inicio', '/busca', '/biblioteca', '/perfil', '/player'];
-const LOGIN_ROUTES  = ['/login'];
+// Todas as rotas que devem servir player.html
+const PLAYER_ROUTES = [
+  '/player.html', '/player',
+  '/inicio', '/busca', '/biblioteca', '/perfil',
+];
+
+// Rotas que servem index.html
+const LOGIN_ROUTES = ['/login', '/index.html', '/'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -38,7 +43,9 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      ))
       .then(() => self.clients.claim())
   );
 });
@@ -74,40 +81,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Rotas limpas do app → servir player.html do cache
-  if (url.origin === self.location.origin && PLAYER_ROUTES.includes(path)) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match('./player.html').then(cached => {
-          if (cached) return cached;
-          return fetch('./player.html').then(res => {
-            if (res.ok) cache.put('./player.html', res.clone());
-            return res;
-          });
-        })
-      )
-    );
-    return;
-  }
-
-  // /login → servir index.html do cache
-  if (url.origin === self.location.origin && LOGIN_ROUTES.includes(path)) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match('./index.html').then(cached => {
-          if (cached) return cached;
-          return fetch('./index.html').then(res => {
-            if (res.ok) cache.put('./index.html', res.clone());
-            return res;
-          });
-        })
-      )
-    );
-    return;
-  }
-
-  // Arquivos locais: cache-first com update em background
   if (url.origin === self.location.origin) {
+    // Rotas do player → serve /player.html
+    if (PLAYER_ROUTES.includes(path)) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(cache =>
+          cache.match('/player.html').then(cached => {
+            if (cached) return cached;
+            return fetch('/player.html').then(res => {
+              if (res.ok) cache.put('/player.html', res.clone());
+              return res;
+            });
+          })
+        )
+      );
+      return;
+    }
+
+    // Rotas de login → serve /index.html
+    if (LOGIN_ROUTES.includes(path)) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then(cache =>
+          cache.match('/index.html').then(cached => {
+            if (cached) return cached;
+            return fetch('/index.html').then(res => {
+              if (res.ok) cache.put('/index.html', res.clone());
+              return res;
+            });
+          })
+        )
+      );
+      return;
+    }
+
+    // Outros arquivos locais: cache-first com update em background
     event.respondWith(
       caches.open(CACHE_NAME).then(cache =>
         cache.match(event.request).then(cached => {
@@ -120,7 +127,7 @@ self.addEventListener('fetch', (event) => {
           return fetch(event.request).then(res => {
             if (res.ok) cache.put(event.request, res.clone());
             return res;
-          }).catch(() => cache.match('./player.html'));
+          }).catch(() => cache.match('/player.html'));
         })
       )
     );
