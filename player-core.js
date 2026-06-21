@@ -659,55 +659,20 @@ function initTabs() {
     const navButtons = document.querySelectorAll('.nav-bar .nav-btn');
     const tabContents = document.querySelectorAll('.main-content .tab-content');
     if (navButtons.length === 0) return;
-    const TAB_TITLES = {
-        'inicio':     'Início — Fenda Music',
-        'buscar':     'Busca — Fenda Music',
-        'biblioteca': 'Biblioteca — Fenda Music',
-        'perfil':     'Perfil — Fenda Music',
-    };
-    const PATH_TO_TAB = {
-        '/inicio':     'inicio',
-        '/busca':      'buscar',
-        '/biblioteca': 'biblioteca',
-        '/perfil':     'perfil',
-        '/player':     'inicio',
-        '/':           'inicio',
-    };
-    const TAB_TO_PATH = {
-        'inicio':     '/inicio',
-        'buscar':     '/busca',
-        'biblioteca': '/biblioteca',
-        'perfil':     '/perfil',
-    };
-
-    function switchTab(tabId, btn, updateUrl = true) {
+    function switchTab(tabId, btn) {
         if (!tabId) return;
         if (typeof window.closePlaylistDetail === 'function') window.closePlaylistDetail();
         navButtons.forEach(b => b.classList.remove('active'));
         tabContents.forEach(t => t.classList.remove('active'));
         if (btn) btn.classList.add('active');
-        if (!btn) {
-            const matchBtn = [...navButtons].find(b => b.getAttribute('data-tab') === tabId);
-            if (matchBtn) matchBtn.classList.add('active');
-        }
         const activeTab = document.getElementById(tabId);
         if (activeTab) activeTab.classList.add('active');
         AppState.currentTab = tabId;
-        if (TAB_TITLES[tabId]) document.title = TAB_TITLES[tabId];
-        if (updateUrl && TAB_TO_PATH[tabId]) {
-            history.pushState({ tab: tabId }, TAB_TITLES[tabId], TAB_TO_PATH[tabId]);
-        }
         if (tabId === 'inicio' && typeof window.renderHome === 'function') window.renderHome();
         if (tabId === 'buscar' && typeof window.initSearch === 'function') window.initSearch();
         if (tabId === 'biblioteca' && typeof window.renderLibrary === 'function') window.renderLibrary();
         if (tabId === 'perfil' && typeof window.renderProfile === 'function') window.renderProfile();
     }
-
-    // Botão Voltar/Avançar do browser navega entre abas
-    window.addEventListener('popstate', (e) => {
-        const tabId = e.state?.tab || PATH_TO_TAB[location.pathname] || 'inicio';
-        switchTab(tabId, null, false);
-    });
     navButtons.forEach(btn => {
         const tabId = btn.getAttribute('data-tab');
         const handler = (e) => { e.preventDefault(); e.stopPropagation(); switchTab(tabId, btn); };
@@ -913,21 +878,6 @@ async function initApp() {
     if (typeof window.renderProfile === 'function') window.renderProfile();
     if (typeof window.renderQueue === 'function') window.renderQueue();
     if (typeof window.initSearch === 'function') window.initSearch();
-
-    // Abre a aba correta baseado na URL atual
-    const PATH_MAP = {
-        '/inicio':     'inicio',
-        '/busca':      'buscar',
-        '/biblioteca': 'biblioteca',
-        '/perfil':     'perfil',
-    };
-    const initialTab = PATH_MAP[location.pathname] || 'inicio';
-    if (initialTab !== 'inicio') {
-        // switchTab já está disponível pois initNavigation foi chamado
-        if (typeof switchTab === 'function') {
-            switchTab(initialTab, null, false);
-        }
-    }
 }
 
 function checkDeepLink() {
@@ -1000,12 +950,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (sessionError) {
         console.error('Erro ao obter sessão:', sessionError);
-        window.location.href = 'login.html';
+        window.location.replace('/index.html');
         return;
     }
     
     if (!session) {
-        window.location.href = 'login.html';
+        window.location.replace('/index.html');
         return;
     }
     
