@@ -49,8 +49,14 @@ function renderPlaylists() {
     });
 }
 
-async function openPlaylistDetail(playlist) {
+async function openPlaylistDetail(playlist, skipPush = false) {
     AppState.currentPlaylistFilter = playlist.id;
+
+    // Atualiza URL
+    if (!skipPush && window.getUrlForState) {
+        const url = window.getUrlForState({ tab: 'biblioteca', playlistId: playlist.id });
+        history.pushState({ tab: 'biblioteca', playlistId: playlist.id }, '', url);
+    }
 
     // Garante que a aba biblioteca está ativa
     const bibTab = document.getElementById('biblioteca');
@@ -133,8 +139,14 @@ async function openPlaylistDetail(playlist) {
     }
 }
 
-async function openLikedMusicsDetail() {
+async function openLikedMusicsDetail(skipPush = false) {
     AppState.currentPlaylistFilter = 'favorites';
+
+    // Atualiza URL
+    if (!skipPush && window.getUrlForState) {
+        const url = window.getUrlForState({ tab: 'biblioteca', playlistId: 'favorites' });
+        history.pushState({ tab: 'biblioteca', playlistId: 'favorites' }, '', url);
+    }
 
     const rootViewFav = document.getElementById('playlistsRootView');
     const detailViewFav = document.getElementById('playlistDetailView');
@@ -170,13 +182,17 @@ async function openLikedMusicsDetail() {
     }
 }
 
-function closePlaylistDetail() {
+function closePlaylistDetail(skipPush = false) {
     AppState.currentPlaylistFilter = null;
     const rootView3 = document.getElementById('playlistsRootView');
     const detailView3 = document.getElementById('playlistDetailView');
     if (rootView3) rootView3.style.display = 'block';
     if (detailView3) detailView3.style.display = 'none';
-    
+
+    if (!skipPush && window.getUrlForState) {
+        history.pushState({ tab: 'biblioteca' }, '', '/biblioteca');
+    }
+
     renderPlaylists();
     if (typeof window.renderLibrary === 'function') window.renderLibrary();
 }

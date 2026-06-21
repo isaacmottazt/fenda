@@ -654,14 +654,119 @@ function showToast(message, type = 'success') {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
+// ===== ROTEADOR DE URL =====
+// Mapeia o pathname atual para o estado da UI e restaura ao carregar/navegar
+
+const _TAB_URL = {
+    '/inicio':    'inicio',
+    '/busca':     'buscar',
+    '/biblioteca':'biblioteca',
+    '/perfil':    'perfil',
+};
+
+const _LIB_FILTER_URL = {
+    '/biblioteca/playlists':  'playlists',
+    '/biblioteca/historico':  'history',
+    '/biblioteca/artistas':   'artists',
+    '/biblioteca/downloads':  'downloads',
+};
+
+// Gera a URL limpa para o estado atual
+window.getUrlForState = function({ tab, libFilter, playlistId, artistName } = {}) {
+    if (tab === 'inicio')     return '/inicio';
+    if (tab === 'buscar')     return '/busca';
+    if (tab === 'perfil')     return '/perfil';
+    if (tab === 'biblioteca') {
+        if (artistName)  return '/biblioteca/artista/' + encodeURIComponent(artistName);
+        if (playlistId)  return '/biblioteca/playlist/' + encodeURIComponent(playlistId);
+        if (libFilter === 'playlists')  return '/biblioteca/playlists';
+        if (libFilter === 'history')    return '/biblioteca/historico';
+        if (libFilter === 'artists')    return '/biblioteca/artistas';
+        if (libFilter === 'downloads')  return '/biblioteca/downloads';
+        return '/biblioteca';
+    }
+    return '/inicio';
+};
+
+// Lê o pathname e restaura o estado da UI correspondente (chamado no load e no popstate)
+window.restoreStateFromUrl = function() {
+    const path = window.location.pathname;
+
+    // Playlist específica: /biblioteca/playlist/:id
+    const playlistMatch = path.match(/^\/biblioteca\/playlist\/(.+)$/);
+    if (playlistMatch) {
+        const id = decodeURIComponent(playlistMatch[1]);
+        _activateTab('biblioteca');
+        // Espera renderLibrary terminar antes de abrir o detalhe
+        const tryOpen = (attempts = 0) => {
+            const playlist = (AppState.userPlaylists || []).find(p => String(p.id) === String(id));
+            if (playlist && typeof window.openPlaylistDetail === 'function') {
+                window.openPlaylistDetail(playlist, true); // true = sem pushState
+            } else if (attempts < 20) {
+                setTimeout(() => tryOpen(attempts + 1), 150);
+            }
+        };
+        setTimeout(() => tryOpen(), 300);
+        return;
+    }
+
+    // Artista: /biblioteca/artista/:nome
+    const artistMatch = path.match(/^\/biblioteca\/artista\/(.+)$/);
+    if (artistMatch) {
+        const name = decodeURIComponent(artistMatch[1]);
+        _activateTab('biblioteca');
+        const tryOpen = (attempts = 0) => {
+            if (AppState.musics && AppState.musics.length && typeof window.openArtistDetail === 'function') {
+                window.openArtistDetail(name, true); // true = sem pushState
+            } else if (attempts < 20) {
+                setTimeout(() => tryOpen(attempts + 1), 150);
+            }
+        };
+        setTimeout(() => tryOpen(), 300);
+        return;
+    }
+
+    // Subtab de biblioteca: /biblioteca/playlists, /biblioteca/historico, etc.
+    if (_LIB_FILTER_URL[path]) {
+        _activateTab('biblioteca');
+        setTimeout(() => {
+            const filterBtn = document.querySelector(`.lib-main-tab[data-filter="${_LIB_FILTER_URL[path]}"]`);
+            if (filterBtn) filterBtn.click();
+        }, 200);
+        return;
+    }
+
+    // Tab principal
+    const tabId = _TAB_URL[path] || 'inicio';
+    _activateTab(tabId);
+};
+
+// Ativa uma tab sem pushState (uso interno do router)
+function _activateTab(tabId) {
+    const navButtons = document.querySelectorAll('.nav-bar .nav-btn');
+    const tabContents = document.querySelectorAll('.main-content .tab-content');
+    navButtons.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(t => t.classList.remove('active'));
+    const btn = document.querySelector(`.nav-btn[data-tab="${tabId}"]`);
+    if (btn) btn.classList.add('active');
+    const tabEl = document.getElementById(tabId);
+    if (tabEl) tabEl.classList.add('active');
+    AppState.currentTab = tabId;
+    if (tabId === 'inicio'     && typeof window.renderHome    === 'function') window.renderHome();
+    if (tabId === 'buscar'     && typeof window.initSearch    === 'function') window.initSearch();
+    if (tabId === 'biblioteca' && typeof window.renderLibrary === 'function') window.renderLibrary();
+    if (tabId === 'perfil'     && typeof window.renderProfile === 'function') window.renderProfile();
+}
+
 // ===== NAVEGAÇÃO POR ABAS =====
 function initTabs() {
     const navButtons = document.querySelectorAll('.nav-bar .nav-btn');
     const tabContents = document.querySelectorAll('.main-content .tab-content');
     if (navButtons.length === 0) return;
+
     function switchTab(tabId, btn) {
         if (!tabId) return;
-        if (typeof window.closePlaylistDetail === 'function') window.closePlaylistDetail();
+        if (typeof window.closePlaylistDetail === 'function') window.closePlaylistDetail(true); // true = sem pushState
         navButtons.forEach(b => b.classList.remove('active'));
         tabContents.forEach(t => t.classList.remove('active'));
         if (btn) btn.classList.add('active');
@@ -672,7 +777,11 @@ function initTabs() {
         if (tabId === 'buscar' && typeof window.initSearch === 'function') window.initSearch();
         if (tabId === 'biblioteca' && typeof window.renderLibrary === 'function') window.renderLibrary();
         if (tabId === 'perfil' && typeof window.renderProfile === 'function') window.renderProfile();
+        // Atualiza URL
+        const url = window.getUrlForState({ tab: tabId });
+        history.pushState({ tab: tabId }, '', url);
     }
+
     navButtons.forEach(btn => {
         const tabId = btn.getAttribute('data-tab');
         const handler = (e) => { e.preventDefault(); e.stopPropagation(); switchTab(tabId, btn); };
@@ -680,6 +789,11 @@ function initTabs() {
         btn.removeEventListener('touchstart', handler);
         btn.addEventListener('click', handler);
         btn.addEventListener('touchstart', handler, { passive: false });
+    });
+
+    // Botão voltar do browser / Android
+    window.addEventListener('popstate', () => {
+        window.restoreStateFromUrl();
     });
 }
 
@@ -914,6 +1028,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     //  PASSO 1: inicializa abas e UI imediatamente, sem esperar nada
     try { initTabs(); } catch (e) { console.error('[Init] initTabs falhou:', e); }
+    try { window.restoreStateFromUrl(); } catch (e) { console.error('[Init] restoreStateFromUrl falhou:', e); }
     try { initKeyboardShortcuts(); } catch (e) { console.error('[Init] initKeyboardShortcuts falhou:', e); }
     try { if (typeof window.initMenusAndSearch === 'function') window.initMenusAndSearch(); } catch (e) { console.error('[Init] initMenusAndSearch falhou:', e); }
     try { if (typeof window.setupPlaylistModal === 'function') window.setupPlaylistModal(); } catch (e) { console.error('[Init] setupPlaylistModal falhou:', e); }

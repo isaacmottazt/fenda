@@ -1,11 +1,17 @@
 {
   "rewrites": [
-    { "source": "/login",          "destination": "/index.html" },
-    { "source": "/inicio",         "destination": "/player.html" },
-    { "source": "/busca",          "destination": "/player.html" },
-    { "source": "/biblioteca",     "destination": "/player.html" },
-    { "source": "/perfil",         "destination": "/player.html" },
-    { "source": "/reset-password", "destination": "/reset-password.html" }
+    { "source": "/login",                        "destination": "/index.html" },
+    { "source": "/inicio",                       "destination": "/player.html" },
+    { "source": "/busca",                        "destination": "/player.html" },
+    { "source": "/biblioteca",                   "destination": "/player.html" },
+    { "source": "/biblioteca/playlists",         "destination": "/player.html" },
+    { "source": "/biblioteca/historico",         "destination": "/player.html" },
+    { "source": "/biblioteca/artistas",          "destination": "/player.html" },
+    { "source": "/biblioteca/downloads",         "destination": "/player.html" },
+    { "source": "/biblioteca/playlist/:id",      "destination": "/player.html" },
+    { "source": "/biblioteca/artista/:nome",     "destination": "/player.html" },
+    { "source": "/perfil",                       "destination": "/player.html" },
+    { "source": "/reset-password",               "destination": "/reset-password.html" }
   ],
   "headers": [
     {

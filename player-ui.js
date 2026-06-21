@@ -385,7 +385,7 @@ async function renderArtistsGrid() {
     grid.appendChild(allGrid);
 }
 
-function openArtistDetail(artistName) {
+function openArtistDetail(artistName, skipPush = false) {
     const artistMusics = AppState.musics.filter(m => m.artist === artistName);
     if (!artistMusics.length) { showToast('Nenhuma música encontrada', 'danger'); return; }
 
@@ -470,8 +470,19 @@ function openArtistDetail(artistName) {
         <div class="artist-detail-list" id="artistMusicList"></div>
     `;
     overlay.classList.add('active');
+    // Atualiza URL
+    if (!skipPush && window.getUrlForState) {
+        const url = window.getUrlForState({ tab: 'biblioteca', artistName });
+        history.pushState({ tab: 'biblioteca', artistName }, '', url);
+    }
 
-    overlay.querySelector('.artist-detail-back').addEventListener('click', () => overlay.classList.remove('active'));
+    overlay.querySelector('.artist-detail-back').addEventListener('click', () => {
+        overlay.classList.remove('active');
+        // Volta para /biblioteca na URL
+        if (window.getUrlForState) {
+            history.pushState({ tab: 'biblioteca' }, '', '/biblioteca');
+        }
+    });
     overlay.querySelector('#artistPlayAll').addEventListener('click', () => {
         if (typeof window.setPlayContext === 'function') window.setPlayContext('search', artistMusics);
         playMusicTrack(artistMusics[0]);
@@ -746,6 +757,11 @@ function renderLibrary() {
                 newTabs.querySelectorAll('.lib-main-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 filterLibrary(tab.dataset.filter);
+                // Atualiza URL
+                const url = window.getUrlForState
+                    ? window.getUrlForState({ tab: 'biblioteca', libFilter: tab.dataset.filter })
+                    : '/biblioteca';
+                history.pushState({ tab: 'biblioteca', libFilter: tab.dataset.filter }, '', url);
             });
         });
     }
