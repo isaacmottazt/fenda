@@ -1,5 +1,5 @@
-// Fenda Music — Service Worker v13
-const CACHE_NAME = 'fenda-v13';
+// Fenda Music — Service Worker v14
+const CACHE_NAME = 'fenda-v14';
 
 const PLAYER_ROUTES = new Set(['/player.html', '/player', '/inicio', '/busca', '/biblioteca', '/perfil']);
 const LOGIN_ROUTES  = new Set(['/index.html', '/login', '/']);
@@ -10,6 +10,7 @@ const SHELL = [
   '/perfil.css', '/login.css', '/supabase-config.js', '/search.js',
   '/player-core.js', '/player-ui.js', '/player-audio-lyrics.js',
   '/player-menus-core.js', '/player-music-actions.js', '/player-playlists.js',
+  '/inicio-extras.js',
 ];
 
 // Aceita mensagem SKIP_WAITING do cliente
