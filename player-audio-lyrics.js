@@ -48,6 +48,37 @@ function initAudioAndLyricsEngine() {
         }
     });
 
+    // ── Salva histórico ao pausar ──────────────────────────────────────────
+    // Garante que o tempo ouvido seja registrado mesmo quando o usuário
+    // pausa e fecha o app sem trocar de música. Mínimo de 10s para não
+    // poluir o histórico com pausas acidentais.
+    DOM.audio.addEventListener('pause', () => {
+        const elapsed = Math.floor(DOM.audio.currentTime || 0);
+        if (elapsed >= 10 && AppState.currentMusicId) {
+            const music = AppState.musics.find(m => m.id === AppState.currentMusicId);
+            if (music && typeof window.addToHistory === 'function') {
+                window.addToHistory(music, elapsed);
+            }
+        }
+    });
+
+    // ── Salva histórico ao ir para segundo plano ───────────────────────────
+    // Captura o caso em que o usuário muda de app enquanto a música toca.
+    // O evento 'pause' NÃO é disparado quando o app vai para background
+    // continuando a reprodução (ex.: fone de ouvido bluetooth), então
+    // tratamos visibilitychange como uma segunda camada de segurança.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'hidden') return;
+        if (DOM.audio.paused) return; // já coberto pelo listener 'pause' acima
+        const elapsed = Math.floor(DOM.audio.currentTime || 0);
+        if (elapsed >= 10 && AppState.currentMusicId) {
+            const music = AppState.musics.find(m => m.id === AppState.currentMusicId);
+            if (music && typeof window.addToHistory === 'function') {
+                window.addToHistory(music, elapsed);
+            }
+        }
+    });
+
     if (DOM.playerBottomPlayBtn) DOM.playerBottomPlayBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlayMusic(); });
     if (DOM.bigPlayBtn) DOM.bigPlayBtn.addEventListener('click', () => togglePlayMusic());
 

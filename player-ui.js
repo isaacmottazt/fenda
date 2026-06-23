@@ -657,30 +657,254 @@ function renderLibrary() {
 
 
 
-    // Histórico (dinâmico)
+    // ── Histórico — estilo Spotify ─────────────────────────────────────────
+    // Estrutura: Resumo do mês + lista agrupada por data com horário de play.
     let histSection = document.getElementById('libHistorySection');
     if (histSection) histSection.remove();
     histSection = document.createElement('div');
-    histSection.id = 'libHistorySection';
+    histSection.id   = 'libHistorySection';
     histSection.className = 'library-section';
     histSection.style.display = 'none';
-    histSection.innerHTML = '<div class="section-header"><h2>Ouvidas recentemente</h2></div>';
-    const hGrid = document.createElement('div');
-    hGrid.className = 'history-grid';
-    if (AppState.history.length === 0) {
-        hGrid.innerHTML = `<div class="history-empty"><span class="material-symbols-rounded">history</span><p>Nenhuma música ouvida ainda</p></div>`;
-    } else {
-        AppState.history.slice(0, 12).forEach(item => {
-            const music = AppState.musics.find(m => m.id === item.id);
-            if (!music) return;
-            const card = document.createElement('div');
-            card.className = 'history-card';
-            card.innerHTML = `<img src="${sanitizeUrl(music.cover)}" loading="lazy"><h4>${escapeHtml(music.title)}</h4><p>${escapeHtml(music.artist)}</p>`;
-            card.addEventListener('click', () => playMusicTrack(music));
-            hGrid.appendChild(card);
-        });
+
+    const _history = AppState.history || [];
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    /** Rótulo legível para uma data (Hoje / Ontem / dia-da-semana / data) */
+    function _histDateLabel(ts) {
+        if (!ts) return '';
+        const now  = new Date();
+        const d    = new Date(ts);
+        if (d.toDateString() === now.toDateString()) return 'Hoje';
+        const yest = new Date(now);
+        yest.setDate(yest.getDate() - 1);
+        if (d.toDateString() === yest.toDateString()) return 'Ontem';
+        const diffDays = Math.floor((now - d) / 86_400_000);
+        if (diffDays < 7) {
+            const wd = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira',
+                        'Quinta-feira','Sexta-feira','Sábado'];
+            return wd[d.getDay()];
+        }
+        const mo = ['janeiro','fevereiro','março','abril','maio','junho',
+                    'julho','agosto','setembro','outubro','novembro','dezembro'];
+        if (d.getFullYear() !== now.getFullYear())
+            return `${d.getDate()} de ${mo[d.getMonth()]} de ${d.getFullYear()}`;
+        return `${d.getDate()} de ${mo[d.getMonth()]}`;
     }
-    histSection.appendChild(hGrid);
+    /** Formata timestamp como HH:MM */
+    function _histTimeStr(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+    /** Formata minutos como "Xh Ymin" ou "Ymin" */
+    function _fmtMin(mins) {
+        if (!mins || mins <= 0) return '—';
+        if (mins >= 60) {
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return m > 0 ? `${h}h ${m}min` : `${h}h`;
+        }
+        return `${mins}min`;
+    }
+
+    // ── Resumo do mês atual ───────────────────────────────────────────────────
+    const _now     = new Date();
+    const _moNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                      'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+    const _thisMo = _history.filter(h => {
+        const d = new Date(h.playedAt || 0);
+        return d.getMonth() === _now.getMonth() && d.getFullYear() === _now.getFullYear();
+    });
+
+    if (_thisMo.length > 0) {
+        // Cálculos
+        const _totalSecs  = _thisMo.reduce((a, h) => a + (h.listenedSeconds || 0), 0);
+        const _totalMins  = Math.floor(_totalSecs / 60);
+        const _unique     = new Set(_thisMo.map(h => h.id)).size;
+        const _activeDays = new Set(_thisMo.map(h => new Date(h.playedAt || 0).toDateString())).size;
+
+        // Top artista
+        const _artCt = {};
+        _thisMo.forEach(h => {
+            const m = AppState.musics.find(m => m.id === h.id);
+            if (m?.artist) _artCt[m.artist] = (_artCt[m.artist] || 0) + 1;
+        });
+        const _topArtist = Object.entries(_artCt).sort((a,b) => b[1]-a[1])[0]?.[0] || null;
+
+        // Top música
+        const _trkCt = {};
+        _thisMo.forEach(h => { _trkCt[h.id] = (_trkCt[h.id] || 0) + 1; });
+        const _topId  = Object.entries(_trkCt).sort((a,b) => b[1]-a[1])[0]?.[0];
+        const _topMus = AppState.musics.find(m => String(m.id) === String(_topId));
+        const _artCov = _topArtist
+            ? (AppState.musics.find(m => m.artist === _topArtist)?.cover || '') : '';
+
+        // Streak: dias consecutivos até hoje
+        let _streak = 0;
+        const _dCheck = new Date(_now);
+        const _daysSet = new Set(_thisMo.map(h => new Date(h.playedAt || 0).toDateString()));
+        while (_daysSet.has(_dCheck.toDateString())) {
+            _streak++;
+            _dCheck.setDate(_dCheck.getDate() - 1);
+        }
+
+        const _mc = document.createElement('div');
+        _mc.className = 'history-month-card';
+        _mc.innerHTML = `
+            <div class="hmc-glow"></div>
+            <div class="hmc-header">
+                <span class="hmc-eyebrow">
+                    <span class="material-symbols-rounded">bar_chart</span>
+                    SEU MÊS EM RESUMO
+                </span>
+                <h3 class="hmc-month">${_moNames[_now.getMonth()]} ${_now.getFullYear()}</h3>
+            </div>
+
+            <div class="hmc-stats">
+                <div class="hmc-stat">
+                    <span class="hmc-stat-value">${_fmtMin(_totalMins)}</span>
+                    <span class="hmc-stat-label">escutadas</span>
+                </div>
+                <div class="hmc-stat-sep"></div>
+                <div class="hmc-stat">
+                    <span class="hmc-stat-value">${_unique}</span>
+                    <span class="hmc-stat-label">músicas</span>
+                </div>
+                <div class="hmc-stat-sep"></div>
+                <div class="hmc-stat">
+                    <span class="hmc-stat-value">${_activeDays}</span>
+                    <span class="hmc-stat-label">dias ativos</span>
+                </div>
+            </div>
+
+            ${_streak >= 2 ? `
+            <div class="hmc-streak">
+                <span class="material-symbols-rounded">local_fire_department</span>
+                <span>${_streak} dias seguidos ouvindo</span>
+            </div>
+            ` : ''}
+
+            ${_topMus || _topArtist ? `<div class="hmc-divider"></div>` : ''}
+
+            ${_topMus ? `
+            <div class="hmc-top-item" data-action="play-top">
+                ${_topMus.cover
+                    ? `<img class="hmc-top-cover" src="${sanitizeUrl(_topMus.cover)}" alt="">`
+                    : `<div class="hmc-top-cover hmc-top-ph"><span class="material-symbols-rounded">music_note</span></div>`}
+                <div class="hmc-top-info">
+                    <span class="hmc-top-label">🎵 Música favorita</span>
+                    <span class="hmc-top-name">${escapeHtml(_topMus.title)}</span>
+                    <span class="hmc-top-sub">${escapeHtml(_topMus.artist || '')}</span>
+                </div>
+                <span class="hmc-top-plays">${_trkCt[_topId]}×</span>
+            </div>
+            ` : ''}
+
+            ${_topArtist ? `
+            <div class="hmc-top-item hmc-top-item--artist" data-action="open-artist">
+                ${_artCov
+                    ? `<img class="hmc-top-cover hmc-top-cover--round" src="${sanitizeUrl(_artCov)}" alt="">`
+                    : `<div class="hmc-top-cover hmc-top-cover--round hmc-top-ph"><span class="material-symbols-rounded">person</span></div>`}
+                <div class="hmc-top-info">
+                    <span class="hmc-top-label">🎤 Artista favorito</span>
+                    <span class="hmc-top-name">${escapeHtml(_topArtist)}</span>
+                    <span class="hmc-top-sub">${_artCt[_topArtist]} plays este mês</span>
+                </div>
+                <span class="material-symbols-rounded hmc-arrow">chevron_right</span>
+            </div>
+            ` : ''}
+        `;
+
+        // Eventos do card
+        _mc.querySelector('[data-action="play-top"]')
+            ?.addEventListener('click', () => _topMus && playMusicTrack(_topMus));
+        _mc.querySelector('[data-action="open-artist"]')
+            ?.addEventListener('click', () => {
+                if (_topArtist && typeof window.openArtistDetail === 'function')
+                    window.openArtistDetail(_topArtist);
+            });
+
+        histSection.appendChild(_mc);
+    }
+
+    // ── Cabeçalho da lista ────────────────────────────────────────────────────
+    const _listHeader = document.createElement('div');
+    _listHeader.className = 'section-header';
+    _listHeader.innerHTML = `<h2><span class="material-symbols-rounded">history</span>Histórico</h2>`;
+    histSection.appendChild(_listHeader);
+
+    // ── Lista agrupada por data ───────────────────────────────────────────────
+    if (_history.length === 0) {
+        const _empty = document.createElement('div');
+        _empty.className = 'history-empty';
+        _empty.innerHTML = `<span class="material-symbols-rounded">history</span>
+                            <p>Nenhuma música ouvida ainda</p>`;
+        histSection.appendChild(_empty);
+    } else {
+        const _listWrap = document.createElement('div');
+        _listWrap.className = 'history-list';
+
+        // Agrupa por dia — com deduplicação de 30 minutos.
+        // Se a mesma música foi tocada mais de uma vez dentro de 30 min no mesmo dia,
+        // aparece apenas uma vez (a mais recente), evitando repetições no histórico.
+        const _DEDUP_MS = 30 * 60 * 1000; // 30 minutos
+        const _groups   = [];
+        const _dateMap  = new Map(); // dateString → índice em _groups
+
+        _history.forEach(item => {
+            const key = new Date(item.playedAt || 0).toDateString();
+            if (!_dateMap.has(key)) {
+                _dateMap.set(key, _groups.length);
+                // lastSeen: musicId → timestamp da última aparição neste grupo
+                _groups.push({ label: _histDateLabel(item.playedAt || 0), items: [], lastSeen: new Map() });
+            }
+            const _group    = _groups[_dateMap.get(key)];
+            const _lastTime = _group.lastSeen.get(item.id) || 0;
+            const _timeDiff = Math.abs((item.playedAt || 0) - _lastTime);
+
+            // Só inclui se esta música não apareceu neste grupo nos últimos 30 min
+            if (_timeDiff > _DEDUP_MS) {
+                _group.lastSeen.set(item.id, item.playedAt || 0);
+                _group.items.push(item);
+            }
+        });
+
+        _groups.forEach(group => {
+            // Cabeçalho de data
+            const _dh = document.createElement('div');
+            _dh.className = 'history-date-header';
+            _dh.innerHTML = `<span class="hdh-line"></span>
+                             <span class="hdh-label">${escapeHtml(group.label)}</span>
+                             <span class="hdh-line"></span>`;
+            _listWrap.appendChild(_dh);
+
+            // Faixas do grupo
+            group.items.forEach(item => {
+                const _m = AppState.musics.find(m => m.id === item.id);
+                if (!_m) return;
+                const _row = document.createElement('div');
+                _row.className = 'history-track-row';
+                const _timeStr = _histTimeStr(item.playedAt);
+                const _dur = item.listenedSeconds > 0
+                    ? `${Math.floor(item.listenedSeconds / 60)}:${String(item.listenedSeconds % 60).padStart(2,'0')}`
+                    : '';
+                _row.innerHTML = `
+                    <img class="htr-cover" src="${sanitizeUrl(_m.cover)}" loading="lazy" alt="">
+                    <div class="htr-meta">
+                        <span class="htr-title">${escapeHtml(_m.title)}</span>
+                        <span class="htr-artist">${escapeHtml(_m.artist || '')}</span>
+                        ${_dur ? `<span class="htr-dur">${_dur} ouvidos</span>` : ''}
+                    </div>
+                    ${_timeStr ? `<span class="htr-time">${_timeStr}</span>` : ''}
+                `;
+                _row.addEventListener('click', () => playMusicTrack(_m));
+                _listWrap.appendChild(_row);
+            });
+        });
+
+        histSection.appendChild(_listWrap);
+    }
+
     document.getElementById('artistsSection')?.insertAdjacentElement('afterend', histSection);
 
     // Downloads (dinâmico)

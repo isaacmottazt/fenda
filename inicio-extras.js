@@ -571,6 +571,156 @@
     }
 
     // ============================================================
+    // RECOMENDADAS PARA VOCÊ
+    // Sistema de recomendação sem IA, 100% client-side.
+    //
+    // Algoritmo em 4 etapas:
+    // 1. Calcula afinidade por artista (histórico + favoritos + playCounts)
+    // 2. Calcula afinidade por gênero (se campo 'genre' existir na tabela)
+    // 3. Exclui músicas ouvidas recentemente (últimas 15)
+    // 4. Pontua candidatos e retorna os top-10 para exibição
+    //
+    // Pontuação de cada candidata:
+    //  + artista afim × 10
+    //  + gênero afim × 6   (se campo 'genre' existir)
+    //  + favorita:   + 40
+    //  + plays normalizados × 25
+    //  + ruído ±8  (para variedade entre renders)
+    // ============================================================
+
+    function _getPlayCountsLocal() {
+        // Lê o mesmo objeto que player-core.js mantém
+        try { return JSON.parse(localStorage.getItem('play_counts') || '{}'); }
+        catch { return {}; }
+    }
+
+    function renderRecommended() {
+        // Remove render anterior
+        TAB.querySelectorAll('.recommended-section').forEach(el => el.remove());
+
+        const musics   = getMusics();
+        const history  = window.AppState?.history  || [];
+        const favorites = window.AppState?.favorites || new Set();
+
+        // Sem dados suficientes: não exibe (usuário ainda não ouviu nada)
+        if (musics.length < 5 || history.length < 3) return;
+
+        const playCounts = _getPlayCountsLocal();
+
+        // ── 1. Afinidade por artista ──────────────────────────────
+        // Histórico: posições mais recentes valem mais (decaimento exponencial)
+        const artistAffinity = {};
+        history.slice(0, 30).forEach((h, idx) => {
+            const m = musics.find(m => String(m.id) === String(h.id ?? h.trackId));
+            if (!m?.artist) return;
+            const weight = 1 / (1 + idx * 0.08); // posição 0=1.0, 5≈0.71, 20≈0.38
+            artistAffinity[m.artist] = (artistAffinity[m.artist] || 0) + weight;
+        });
+        // Favoritos aumentam afinidade do artista (vale 2.5 plays recentes)
+        musics
+            .filter(m => favorites.has(m.id) || favorites.has(String(m.id)))
+            .forEach(m => {
+                if (m.artist)
+                    artistAffinity[m.artist] = (artistAffinity[m.artist] || 0) + 2.5;
+            });
+        // PlayCounts: contribuição proporcional (normalizada depois)
+        const maxArtistPlays = {};
+        musics.forEach(m => {
+            const plays = parseInt(playCounts[String(m.id)] || 0);
+            if (plays > 0 && m.artist)
+                maxArtistPlays[m.artist] = Math.max(maxArtistPlays[m.artist] || 0, plays);
+        });
+        Object.entries(maxArtistPlays).forEach(([artist, plays]) => {
+            artistAffinity[artist] = (artistAffinity[artist] || 0) + plays * 0.3;
+        });
+
+        // ── 2. Afinidade por gênero (campo 'genre' opcional) ─────
+        const genreAffinity = {};
+        const hasGenre = musics.some(m => m.genre);
+        if (hasGenre) {
+            history.slice(0, 30).forEach((h, idx) => {
+                const m = musics.find(m => String(m.id) === String(h.id ?? h.trackId));
+                if (!m?.genre) return;
+                const weight = 1 / (1 + idx * 0.08);
+                genreAffinity[m.genre] = (genreAffinity[m.genre] || 0) + weight;
+            });
+        }
+
+        // ── 3. Exclui músicas ouvidas recentemente (últimas 15) ──
+        const recentIds = new Set(
+            history.slice(0, 15).map(h => String(h.id ?? h.trackId)).filter(Boolean)
+        );
+
+        // ── 4. Pontua candidatos ──────────────────────────────────
+        const allPlayValues = Object.values(playCounts).map(Number).filter(n => n > 0);
+        const maxPlays = allPlayValues.length ? Math.max(...allPlayValues) : 1;
+
+        const recommendations = musics
+            .filter(m => !recentIds.has(String(m.id)))
+            .map(m => {
+                let score = 0;
+
+                // Artista afim
+                score += (artistAffinity[m.artist] || 0) * 10;
+
+                // Gênero afim (se disponível)
+                if (m.genre && genreAffinity[m.genre])
+                    score += genreAffinity[m.genre] * 6;
+
+                // Favorita: bônus direto
+                if (favorites.has(m.id) || favorites.has(String(m.id)))
+                    score += 40;
+
+                // Frequência de plays normalizada
+                score += (parseInt(playCounts[String(m.id)] || 0) / maxPlays) * 25;
+
+                // Ruído pequeno para variedade entre renders
+                score += Math.random() * 8;
+
+                return { music: m, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10)
+            .map(({ music }) => music);
+
+        // Não exibe se não há recomendações suficientes
+        if (recommendations.length < 3) return;
+
+        // ── Renderiza a seção ─────────────────────────────────────
+        const sec = document.createElement('section');
+        sec.className = 'home-section recommended-section';
+        sec.innerHTML = `
+            <div class="section-header">
+                <h2><span class="material-symbols-rounded">recommend</span>Recomendadas para você</h2>
+            </div>
+            <div class="recommended-track">
+                ${recommendations.map(t => `
+                    <button class="recommended-card" type="button">
+                        <div class="recommended-cover-wrap">
+                            <img src="${safe(t.cover)}" alt="${esc(t.title)}" loading="lazy">
+                        </div>
+                        <p class="recommended-title">${esc(t.title)}</p>
+                        <p class="recommended-artist">${esc(t.artist || '')}</p>
+                    </button>
+                `).join('')}
+            </div>
+        `;
+
+        // Eventos de clique
+        recommendations.forEach((t, i) => {
+            sec.querySelectorAll('.recommended-card')[i]
+               ?.addEventListener('click', () => play(t));
+        });
+
+        // Posiciona após playlists (ou após populares como fallback)
+        const anchor = TAB.querySelector('.playlists-section')
+                    || TAB.querySelector('.popular-section')
+                    || TAB.querySelector('.discover-section');
+        if (anchor) anchor.parentNode.insertBefore(sec, anchor.nextSibling);
+        else TAB.appendChild(sec);
+    }
+
+    // ============================================================
     // INIT
     // ============================================================
 
@@ -582,6 +732,7 @@
             renderDiscover();
             renderPopular();
             renderPlaylists();
+            renderRecommended();   // ← nova seção
             renderNight();
             reorderHomeSections();
         } catch (e) {
@@ -612,6 +763,7 @@
         init,
         reorder: reorderHomeSections,
         refreshDiscover: renderDiscover,
+        refreshRecommended: renderRecommended,
         diagnose() {
             const m = getMusics();
             console.log('[inicio-extras] musics:', m.length);
@@ -619,6 +771,8 @@
             console.log('[inicio-extras] history:', (window.AppState?.history||[]).length);
             console.log('[inicio-extras] playlists:', (window.AppState?.userPlaylists||[]).length);
             console.log('[inicio-extras] userId:', getUserId());
+            console.log('[inicio-extras] hasGenre:', m.some(x => x.genre));
+            console.log('[inicio-extras] playCounts entries:', Object.keys(_getPlayCountsLocal()).length);
         }
     };
 

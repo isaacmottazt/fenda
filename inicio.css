@@ -1404,3 +1404,98 @@
 @media (prefers-reduced-motion: reduce) {
     .popular-fire { animation: none; }
 }
+
+/* ============================================================
+   RECOMENDADAS PARA VOCÊ
+   Carrossel horizontal de 10 músicas pontuadas pelo algoritmo
+   de recomendação em inicio-extras.js (renderRecommended).
+   Reutiliza as mesmas variáveis CSS do Vidro Profundo.
+   ============================================================ */
+
+.recommended-section { margin-bottom: 38px; }
+
+/* Trilha do carrossel (mesmo padrão de .popular-track e .playlists-track) */
+.recommended-track {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    cursor: grab;
+}
+
+.recommended-track::-webkit-scrollbar { display: none; }
+.recommended-track:active { cursor: grabbing; }
+
+/* Card individual */
+.recommended-card {
+    flex: 0 0 140px;
+    scroll-snap-align: start;
+    width: 140px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    color: inherit;
+    transition: transform 0.2s;
+}
+
+.recommended-card:hover { transform: translateY(-3px); }
+.recommended-card:active { transform: scale(0.97); }
+
+/* Capa */
+.recommended-cover-wrap {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 10px;
+    box-shadow:
+        0 8px 20px -8px rgba(0, 0, 0, 0.6),
+        0 0 0 1px var(--vp-violet-line);
+}
+
+.recommended-cover-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+}
+
+.recommended-card:hover .recommended-cover-wrap img {
+    transform: scale(1.06);
+}
+
+/* Metadados */
+.recommended-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+}
+
+.recommended-artist {
+    font-size: 11px;
+    color: var(--vp-ink-low);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    .recommended-card       { flex: 0 0 128px; width: 128px; }
+    .recommended-cover-wrap { width: 128px; height: 128px; }
+}

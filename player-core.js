@@ -121,6 +121,13 @@ function loadLocalUserName() {
     } catch { return null; }
 }
 
+// ── Deduplicação de histórico no Supabase ────────────────────────────────
+// Evita INSERT duplicado quando a mesma música é tocada várias vezes
+// em menos de 30 segundos (ex.: usuário clica duas vezes seguidas).
+// O controle é feito em memória: musicId → timestamp do último INSERT.
+const _historyDedup = new Map();
+const _HISTORY_DEDUP_MS = 30_000; // 30 segundos
+
 async function addToHistory(music, listenedSeconds = 0) {
     if (!music) return;
 
@@ -141,13 +148,23 @@ async function addToHistory(music, listenedSeconds = 0) {
     // 2. Atualiza tempo total ouvido localmente
     if (listenedSeconds > 5) addToTotalTime(listenedSeconds);
 
-    // 3. Atualiza AppState imediatamente
+    // 3. Atualiza AppState imediatamente (UI reflete sem esperar rede)
     AppState.history = history;
 
-    // 4. Tenta salvar no Supabase em background (não bloqueia)
+    // 4. Salva no Supabase em background — com deduplicação
+    // Só envia se a mesma música não foi registrada nos últimos 30s.
+    // Isso evita INSERTs desnecessários sem nenhuma chamada extra à rede.
     if (AppState.userId && navigator.onLine) {
-        window.addToListeningHistory?.(AppState.userId, music.id, listenedSeconds)
-            .catch(() => console.warn('[Cache] Histórico não sincronizado (offline)'));
+        const now = Date.now();
+        const lastSaved = _historyDedup.get(String(music.id)) || 0;
+
+        if (now - lastSaved > _HISTORY_DEDUP_MS) {
+            _historyDedup.set(String(music.id), now);
+            window.addToListeningHistory?.(AppState.userId, music.id, listenedSeconds)
+                .catch(() => console.warn('[Cache] Histórico não sincronizado (offline)'));
+        }
+        // Se dentro da janela de dedup: só atualiza localStorage (já feito acima),
+        // Supabase será atualizado na próxima vez que a janela de 30s expirar.
     }
 }
 
