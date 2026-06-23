@@ -251,7 +251,130 @@ const CacheDB = {
     }
 };
 
-window.CacheDB = CacheDB;
+window.CacheDB      = CacheDB;
+window.openCacheDB  = openCacheDB;   // exposto para download em lote de playlists
+
+// ── REGISTRO DE PERIODIC SYNC ──────────────────────────────────────────────
+// Registra sincronização periódica em background (catálogo + dados do usuário).
+// Suportado no Android Chrome e Edge. Requer permissão "periodic-background-sync".
+async function registerPeriodicSync() {
+    if (!('serviceWorker' in navigator)) return;
+    if (!('periodicSync' in ServiceWorkerRegistration.prototype)) {
+        console.log('[App] Periodic Sync não suportado neste browser');
+        return;
+    }
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const tags = await reg.periodicSync.getTags();
+
+        if (!tags.includes('fenda-sync-catalog')) {
+            await reg.periodicSync.register('fenda-sync-catalog', {
+                minInterval: 24 * 60 * 60 * 1000 // 24 horas
+            });
+            console.log('[App] Periodic sync de catálogo registrado');
+        }
+        if (!tags.includes('fenda-sync-user')) {
+            await reg.periodicSync.register('fenda-sync-user', {
+                minInterval: 12 * 60 * 60 * 1000 // 12 horas
+            });
+            console.log('[App] Periodic sync de usuário registrado');
+        }
+    } catch (e) {
+        console.warn('[App] Periodic sync falhou:', e.message);
+    }
+}
+
+// ── NOTIFICAÇÕES PUSH ──────────────────────────────────────────────────────
+// IMPORTANTE: substitua VAPID_PUBLIC_KEY pela sua chave pública real.
+// Gere com: npx web-push generate-vapid-keys
+// Guarde a chave PRIVADA no servidor (Supabase Edge Function / backend).
+const VAPID_PUBLIC_KEY = 'BDScGZPERV87Y9bLVVyXl98QFK1-xWIs5hwYXGuwkzAy01PUTTbhU3V1x4Qigc_TSLp-0cYH55y_U28nm_5J_xQ';
+
+async function subscribePushNotifications() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('[App] Push não suportado neste browser');
+        return null;
+    }
+    try {
+        const reg = await navigator.serviceWorker.ready;
+
+        // Verifica se já tem subscription ativa
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) return existing;
+
+        // Solicita permissão ao usuário
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            console.log('[App] Permissão de notificação negada');
+            return null;
+        }
+
+        // Cria a subscription com a chave VAPID
+        const sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        // Envia subscription para o backend (Supabase Edge Function)
+        if (AppState.userId) {
+            await fetch('https://ublmmwatrqvthbcmnrps.supabase.co/functions/v1/save-push-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: AppState.userId, subscription: sub })
+            }).catch(() => {});
+        }
+
+        console.log('[App] Push subscription criada com sucesso');
+        return sub;
+    } catch (e) {
+        console.warn('[App] Erro ao subscrever push:', e.message);
+        return null;
+    }
+}
+
+// Converte chave VAPID de base64 para Uint8Array (padrão da Web Push API)
+function _urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+// Ouve mensagens do SW (clique em notificação, background sync)
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', event => {
+        const { type, url, musicId, payload } = event.data || {};
+
+        if (type === 'NOTIFICATION_CLICK') {
+            // Toca a música da notificação se tiver musicId
+            if (musicId) {
+                const music = AppState.musics.find(m => String(m.id) === String(musicId));
+                if (music) playMusicTrack(music);
+            } else if (url) {
+                window.location.href = url;
+            }
+        }
+
+        if (type === 'BACKGROUND_SYNC' && payload === 'user-data') {
+            // SW pediu sync de dados — recarrega favoritos se estiver logado
+            if (AppState.userId && typeof window.loadUserFavorites === 'function') {
+                window.loadUserFavorites(AppState.userId).catch(() => {});
+            }
+        }
+    });
+}
+
+// Registra serviços de background 3s após o boot (não bloqueia o carregamento)
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        registerPeriodicSync();
+        // Push: só solicita permissão se usuário está logado
+        if (AppState.userId) subscribePushNotifications();
+    }, 3000);
+});
+
+window.subscribePushNotifications = subscribePushNotifications;
+window.registerPeriodicSync       = registerPeriodicSync;
 
 // ===== CACHE OFFLINE DE ÁUDIO =====
 const DB_NAME = 'FendaMusicAudio_v4'; // nome novo = banco novo, sem conflito com versões antigas
@@ -288,17 +411,18 @@ async function isMusicCached(musicId) {
     } catch { return false; }
 }
 
-// Baixa e salva a música no IndexedDB com progresso
-async function cacheAudio(music) {
+// Baixa e salva a música no IndexedDB.
+// silent=true: suprime todos os toasts internos — usado no download em lote de playlists
+async function cacheAudio(music, silent = false) {
     const url = music.src;
     const musicId = music.id;
     try {
-        showToast('Baixando música...', 'success');
+        if (!silent) showToast('Baixando música...', 'success');
 
         const response = await fetch(url);
         if (!response.ok) throw new Error('Falha ao baixar áudio');
 
-        // Lê com progresso se possível
+        // Progresso só exibido no download individual (não em lote)
         const contentLength = response.headers.get('Content-Length');
         let blob;
         if (contentLength && response.body) {
@@ -311,8 +435,10 @@ async function cacheAudio(music) {
                 if (done) break;
                 chunks.push(value);
                 received += value.length;
-                const pct = Math.round((received / total) * 100);
-                showToast(`Baixando... ${pct}%`, 'success');
+                if (!silent) {
+                    const pct = Math.round((received / total) * 100);
+                    showToast(`Baixando... ${pct}%`, 'success');
+                }
             }
             blob = new Blob(chunks);
         } else {
@@ -337,12 +463,12 @@ async function cacheAudio(music) {
             tx.onerror = () => reject(tx.error);
         });
 
-        showToast(`"${music.title}" salva para ouvir offline!`, 'success');
+        if (!silent) showToast(`"${music.title}" salva para ouvir offline!`, 'success');
         // Atualiza ícone do botão de download na UI
         _updateDownloadBtn(musicId, true);
         return true;
     } catch (err) {
-        showToast('Erro ao salvar: ' + err.message, 'danger');
+        if (!silent) showToast('Erro ao salvar: ' + err.message, 'danger');
         return false;
     }
 }

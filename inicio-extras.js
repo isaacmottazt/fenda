@@ -743,7 +743,10 @@
     function init() {
         renderHeader();
         renderDynamic();
+        // Retry duplo: 1s para seções dinâmicas, 2.5s especificamente para o
+        // header/avatar (autenticação pode demorar mais que o boot inicial)
         setTimeout(() => { renderDynamic(); reorderHomeSections(); }, 1000);
+        setTimeout(() => { renderHeader(); }, 2500);
     }
 
     if (document.readyState === 'loading') {

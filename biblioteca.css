@@ -1554,3 +1554,457 @@
     .hmc-month      { font-size: 20px; }
     .hmc-top-cover  { width: 46px; height: 46px; }
 }
+
+/* ====================================================================
+   MODAL DE CRIAR / EDITAR PLAYLIST
+   ==================================================================== */
+
+/* Container inner do modal */
+.playlist-modal-new {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    margin: 4px 0 20px;
+}
+
+/* Preview da capa */
+.playlist-modal-cover-preview {
+    width: 130px;
+    height: 130px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(76, 29, 149, 0.25));
+    border: 2px dashed rgba(192, 132, 252, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.06),
+        0 4px 20px rgba(124, 58, 237, 0.2);
+}
+.playlist-modal-cover-preview:active {
+    transform: scale(0.96);
+    border-color: rgba(192, 132, 252, 0.7);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.4), rgba(76, 29, 149, 0.35));
+}
+.playlist-modal-cover-preview .material-symbols-rounded {
+    font-size: 36px;
+    color: rgba(192, 132, 252, 0.7);
+}
+
+.playlist-modal-cover-hint {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(192, 132, 252, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Input de nome da playlist */
+#newPlaylistName {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 14px 18px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    letter-spacing: 0.01em;
+}
+#newPlaylistName:focus {
+    border-color: rgba(192, 132, 252, 0.6);
+    background: rgba(124, 58, 237, 0.08);
+    box-shadow:
+        0 0 0 4px rgba(124, 58, 237, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+#newPlaylistName::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 400;
+}
+
+/* Área dos botões do modal */
+.modal-actions-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+.modal-actions-wrapper button {
+    flex: 1;
+    padding: 13px 0;
+    border-radius: 14px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.18s ease;
+    letter-spacing: -0.1px;
+}
+
+/* Botão Cancelar */
+#cancelModalBtn {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+#cancelModalBtn:active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    transform: scale(0.97);
+}
+
+/* Botão Salvar */
+#confirmModalBtn {
+    background: linear-gradient(135deg, #9333ea 0%, #7c3aed 55%, #5b21b6 100%);
+    color: #fff;
+    box-shadow:
+        0 6px 20px rgba(124, 58, 237, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+#confirmModalBtn:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+}
+
+/* Título do modal */
+#playlistModal .modal-content-box h3,
+#modalPlaylistTitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 6px;
+    letter-spacing: -0.3px;
+    text-align: center;
+}
+
+/* ====================================================================
+   ABA "TUDO" — stats, top artistas, favoritas
+   ==================================================================== */
+
+/* Pills de estatísticas — 2×2 para caber em telas pequenas */
+.lib-all-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 24px;
+}
+.lib-stat-pill {
+    background: var(--lib-surface);
+    border: 1px solid var(--lib-border);
+    border-radius: 16px;
+    padding: 12px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.lib-stat-pill .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--lib-violet-hi);
+}
+.lib-stat-num {
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: -0.4px;
+    line-height: 1;
+}
+.lib-stat-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--lib-ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+}
+
+/* Row de artistas mais ouvidos */
+.lib-all-artists-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -4px;
+    padding: 2px 4px 8px;
+}
+.lib-all-artists-row::-webkit-scrollbar { display: none; }
+
+.lib-all-artist-chip {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 14px 7px 7px;
+    background: var(--lib-surface);
+    border: 1px solid var(--lib-border);
+    border-radius: 40px;
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+    transition: all 0.16s;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.lib-all-artist-chip:active {
+    background: rgba(168, 85, 247, 0.18);
+    border-color: var(--lib-border-hi);
+    transform: scale(0.97);
+}
+.lib-all-artist-chip-img {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.lib-all-artist-chip-ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid rgba(168, 85, 247, 0.15);
+}
+.lib-all-artist-chip-ph .material-symbols-rounded {
+    font-size: 16px;
+    color: rgba(255,255,255,0.35);
+}
+.lib-all-artist-chip-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--lib-ink);
+    white-space: nowrap;
+    letter-spacing: -0.1px;
+}
+
+/* Carrossel de favoritas — horizontal scroll */
+.lib-all-favs-carousel {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 4px 16px 12px;
+    cursor: grab;
+}
+.lib-all-favs-carousel::-webkit-scrollbar { display: none; }
+.lib-all-favs-carousel:active { cursor: grabbing; }
+
+.lib-all-fav-card {
+    flex: 0 0 136px;
+    width: 136px;
+    scroll-snap-align: start;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: transform 0.18s;
+}
+.lib-all-fav-card:active { transform: scale(0.95); }
+
+.lib-all-fav-cover-wrap {
+    position: relative;
+    width: 136px;
+    height: 136px;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 9px;
+    box-shadow:
+        0 8px 20px -6px rgba(0,0,0,0.6),
+        0 0 0 1px var(--lib-border, rgba(255,255,255,0.08));
+}
+.lib-all-fav-cover-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+.lib-all-fav-card:hover .lib-all-fav-cover-wrap img {
+    transform: scale(1.05);
+}
+.lib-all-fav-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--lib-ink, #f0eaff);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+    margin-bottom: 2px;
+}
+.lib-all-fav-artist {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--lib-ink-low, rgba(255,255,255,0.45));
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Telas pequenas: 2 colunas pra não comprimir demais os stats */
+@media (max-width: 400px) {
+    .lib-all-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .lib-stat-num { font-size: 16px; }
+}
+@media (max-width: 360px) {
+    .lib-all-stats { grid-template-columns: repeat(2, 1fr); }
+    .lib-stat-num  { font-size: 15px; }
+}
+
+/* ====================================================================
+   ABA "TUDO" — PLAYLISTS INTERNAS (lib-all-playlists)
+   HTML próprio que não depende de CSS variables do playlist-item-modern.
+   ==================================================================== */
+
+.lib-all-playlists-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 2px;
+}
+
+.lib-all-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.2px;
+}
+
+.lib-all-section-label .material-symbols-rounded {
+    font-size: 20px;
+    color: #b07fff;
+}
+
+.lib-all-see-all {
+    background: rgba(124, 58, 237, 0.1);
+    border: 1px solid rgba(192, 132, 252, 0.2);
+    color: #c084fc;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.lib-all-see-all:active {
+    background: rgba(124, 58, 237, 0.2);
+    transform: scale(0.96);
+}
+
+.lib-all-playlists {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 28px;
+}
+
+/* Item de playlist — estilo simples e robusto, sem CSS variables */
+.lib-all-pl-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.lib-all-pl-item:active {
+    background: rgba(124, 58, 237, 0.12);
+    border-color: rgba(192, 132, 252, 0.25);
+}
+
+/* Ícone / capa */
+.lib-all-pl-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: #1e1040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lib-all-pl-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.lib-all-pl-icon .material-symbols-rounded {
+    font-size: 22px;
+    color: rgba(192, 132, 252, 0.7);
+}
+
+/* Curtidas — ícone rosa */
+.lib-all-pl-liked {
+    background: linear-gradient(135deg, #7c1a4a, #2d0b1e);
+}
+
+.lib-all-pl-liked .material-symbols-rounded {
+    color: #f87171;
+}
+
+/* Textos */
+.lib-all-pl-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.lib-all-pl-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    letter-spacing: -0.1px;
+}
+
+.lib-all-pl-count {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.45);
+    display: block;
+}

@@ -279,6 +279,12 @@ function openPlaylistContextMenu(playlist) {
                     </div>
                     <span>Renomear playlist</span>
                 </button>
+                <button id="menuDownloadPlaylist" class="ctx-btn">
+                    <div class="ctx-icon ctx-icon-green">
+                        <span class="material-symbols-rounded">download_for_offline</span>
+                    </div>
+                    <span>Baixar todas as músicas</span>
+                </button>
                 <button id="menuDeletePlaylist" class="ctx-btn ctx-btn-danger">
                     <div class="ctx-icon ctx-icon-red">
                         <span class="material-symbols-rounded">delete</span>
@@ -297,6 +303,60 @@ function openPlaylistContextMenu(playlist) {
             renameBtn.addEventListener('click', () => { 
                 triggerRenamePlaylistForm(); 
                 closeContextMenu(); 
+            });
+        }
+
+        // ── Baixar todas as músicas da playlist ──────────────────────────────
+        const downloadBtn = document.getElementById('menuDownloadPlaylist');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async () => {
+                closeContextMenu();
+                const pl = AppState.selectedPlaylistForMenu;
+                if (!pl?.musics?.length) {
+                    showToast('Playlist vazia', 'danger');
+                    return;
+                }
+
+                // Resolve objetos completos das músicas da playlist
+                const plMusics = AppState.musics.filter(m =>
+                    pl.musics.includes(m.id) || pl.musics.includes(String(m.id))
+                );
+                if (!plMusics.length) {
+                    showToast('Nenhuma música encontrada na playlist', 'danger');
+                    return;
+                }
+
+                showToast(`Iniciando download de ${plMusics.length} músicas…`, 'success');
+
+                let done = 0, failed = 0;
+                for (const music of plMusics) {
+                    try {
+                        // Verifica se já está em cache (evita re-download)
+                        const db = await window.openCacheDB?.();
+                        if (db) {
+                            const alreadyCached = await new Promise(res => {
+                                const tx = db.transaction(['audio'], 'readonly');
+                                const req = tx.objectStore('audio').get(music.id);
+                                req.onsuccess = () => res(!!req.result);
+                                req.onerror   = () => res(false);
+                            });
+                            if (alreadyCached) { done++; continue; }
+                        }
+
+                        // silent=true: suprime toasts individuais de progresso
+                        const ok = await window.cacheAudio(music, true);
+                        if (ok) done++;
+                        else    failed++;
+                    } catch {
+                        failed++;
+                    }
+                }
+
+                if (failed === 0) {
+                    showToast(`✅ ${done} músicas salvas para ouvir offline!`, 'success');
+                } else {
+                    showToast(`${done} salvas · ${failed} com erro`, 'danger');
+                }
             });
         }
         
