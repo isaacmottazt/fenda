@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Notificações - Banco de Dados</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #a78bfa;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .card {
+            background: rgba(167, 139, 250, 0.1);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        .ok { background: rgba(52, 211, 153, 0.1); color: #34d399; border-left: 3px solid #34d399; }
+        .error { background: rgba(248, 113, 113, 0.1); color: #f87171; border-left: 3px solid #f87171; }
+        .info { background: rgba(96, 165, 250, 0.1); color: #60a5fa; border-left: 3px solid #60a5fa; }
+        .warning { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border-left: 3px solid #fbbf24; }
+        button {
+            background: #a78bfa;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            margin: 8px 0;
+        }
+        button:active { opacity: 0.8; }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+        .table th, .table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid rgba(167, 139, 250, 0.2);
+        }
+        .table th {
+            background: rgba(167, 139, 250, 0.1);
+            color: #a78bfa;
+        }
+        .table tr:hover {
+            background: rgba(167, 139, 250, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Teste Direto no Banco</h1>
+        
+        <div class="card">
+            <h2 style="color: #a78bfa; margin-bottom: 12px;">Status</h2>
+            <div id="status"></div>
+        </div>
+
+        <div class="card">
+            <h2 style="color: #a78bfa; margin-bottom: 12px;">Dados do Banco</h2>
+            <button onclick="checkAdminMessages()">📨 Checar admin_messages</button>
+            <button onclick="checkMessageDeliveries()">📮 Checar message_deliveries</button>
+            <button onclick="autoRefresh()">🔄 Auto-Refresh (5s)</button>
+            <div id="data"></div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const dataEl = document.getElementById('data');
+        let autoRefreshInterval = null;
+
+        // Carregar credenciais do supabase-config.js
+        let supabaseClient = null;
+
+        async function initSupabase() {
+            // Tentar carregar supabase-config.js
+            try {
+                // Se já existe global
+                if (window.supabaseClient) {
+                    supabaseClient = window.supabaseClient;
+                    addStatus('✅ Supabase carregado do global', 'ok');
+                    return true;
+                }
+
+                // Tentar criar manualmente com credenciais conhecidas
+                const script = document.createElement('script');
+                script.src = 'supabase-config.js';
+                script.onload = () => {
+                    if (window.supabaseClient) {
+                        supabaseClient = window.supabaseClient;
+                        addStatus('✅ Supabase carregado de supabase-config.js', 'ok');
+                    }
+                };
+                script.onerror = () => {
+                    addStatus('⚠️ supabase-config.js não encontrado', 'warning');
+                };
+                document.head.appendChild(script);
+
+                // Aguardar um pouco
+                await new Promise(r => setTimeout(r, 1000));
+                return !!supabaseClient;
+            } catch (e) {
+                addStatus(`❌ Erro: ${e.message}`, 'error');
+                return false;
+            }
+        }
+
+        function addStatus(text, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = text;
+            statusEl.appendChild(div);
+        }
+
+        async function checkAdminMessages() {
+            dataEl.innerHTML = '';
+            
+            if (!supabaseClient) {
+                addStatus('❌ Supabase não carregado', 'error');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('admin_messages')
+                    .select('id, title, body, created_at')
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) {
+                    addStatus(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    addStatus('ℹ️ Nenhuma mensagem no banco', 'info');
+                    return;
+                }
+
+                addStatus(`✅ ${data.length} mensagem(ns) encontrada(s)`, 'ok');
+
+                const table = document.createElement('table');
+                table.className = 'table';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(m => `
+                            <tr>
+                                <td>${m.id.substring(0, 8)}...</td>
+                                <td>${m.title}</td>
+                                <td>${new Date(m.created_at).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                dataEl.appendChild(table);
+            } catch (e) {
+                addStatus(`❌ ${e.message}`, 'error');
+            }
+        }
+
+        async function checkMessageDeliveries() {
+            dataEl.innerHTML = '';
+
+            if (!supabaseClient) {
+                addStatus('❌ Supabase não carregado', 'error');
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                
+                if (!session) {
+                    addStatus('❌ Não autenticado', 'error');
+                    return;
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('message_deliveries')
+                    .select('id, message_id, status, user_id, created_at')
+                    .eq('user_id', session.user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) {
+                    addStatus(`❌ Erro: ${error.message}`, 'error');
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    addStatus(`ℹ️ Nenhuma entrega para ${session.user.email}`, 'info');
+                    return;
+                }
+
+                const pending = data.filter(d => d.status === 'pending').length;
+                const sent = data.filter(d => d.status === 'sent').length;
+
+                addStatus(`✅ ${data.length} entrega(s): ${pending} pendentes, ${sent} enviadas`, 'ok');
+
+                const table = document.createElement('table');
+                table.className = 'table';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Message ID</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(d => `
+                            <tr>
+                                <td style="color: ${d.status === 'pending' ? '#fbbf24' : '#34d399'}">
+                                    ${d.status === 'pending' ? '⏳ PENDENTE' : '✅ ENVIADA'}
+                                </td>
+                                <td>${d.message_id.substring(0, 8)}...</td>
+                                <td>${new Date(d.created_at).toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                dataEl.appendChild(table);
+            } catch (e) {
+                addStatus(`❌ ${e.message}`, 'error');
+            }
+        }
+
+        function autoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                addStatus('⏹️ Auto-refresh desativado', 'info');
+                return;
+            }
+
+            addStatus('🔄 Auto-refresh ativado (5 segundos)', 'info');
+            checkMessageDeliveries();
+            autoRefreshInterval = setInterval(checkMessageDeliveries, 5000);
+        }
+
+        // Iniciar
+        window.addEventListener('load', async () => {
+            await initSupabase();
+            if (supabaseClient) {
+                try {
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        addStatus(`✅ Autenticado como: ${session.user.email}`, 'ok');
+                    } else {
+                        addStatus('❌ Não autenticado - faça login primeiro', 'error');
+                    }
+                } catch (e) {
+                    addStatus(`❌ Erro: ${e.message}`, 'error');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
