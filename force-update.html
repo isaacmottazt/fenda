@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forçar Atualização - Fenda Music</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            background: rgba(167, 139, 250, 0.1);
+            border: 2px solid #a78bfa;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 400px;
+        }
+        h1 {
+            color: #a78bfa;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 20px auto;
+            border: 4px solid rgba(167, 139, 250, 0.3);
+            border-top-color: #a78bfa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .steps {
+            text-align: left;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        .step {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 4px solid #a78bfa;
+        }
+        .step.done {
+            background: rgba(52, 211, 153, 0.1);
+            border-left-color: #34d399;
+            color: #34d399;
+        }
+        .step.error {
+            background: rgba(248, 113, 113, 0.1);
+            border-left-color: #f87171;
+            color: #f87171;
+        }
+        .status {
+            margin-top: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Forçar Atualização</h1>
+        <div class="spinner"></div>
+        <div class="steps" id="steps"></div>
+        <div class="status" id="status">Processando...</div>
+    </div>
+
+    <script>
+        const stepsEl = document.getElementById('steps');
+        const statusEl = document.getElementById('status');
+        let stepIndex = 0;
+
+        function addStep(text, done = false) {
+            const div = document.createElement('div');
+            div.className = `step ${done ? 'done' : ''}`;
+            div.textContent = text;
+            stepsEl.appendChild(div);
+            stepIndex++;
+        }
+
+        async function forceUpdate() {
+            try {
+                // Passo 1
+                addStep('Desregistrando Service Workers...');
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                    await reg.unregister();
+                }
+                document.querySelector('.step:last-child').classList.add('done');
+                addStep(`✅ ${regs.length} SW(s) desregistrado(s)`);
+
+                // Passo 2
+                addStep('Limpando caches...');
+                const cacheNames = await caches.keys();
+                for (const name of cacheNames) {
+                    await caches.delete(name);
+                }
+                document.querySelector('.step:last-child').classList.add('done');
+                addStep(`✅ ${cacheNames.length} cache(s) deletado(s)`);
+
+                // Passo 3
+                addStep('Limpando localStorage...');
+                let removed = 0;
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('fenda') || key.includes('push') || key.includes('notif')) {
+                        localStorage.removeItem(key);
+                        removed++;
+                    }
+                });
+                document.querySelector('.step:last-child').classList.add('done');
+                addStep(`✅ ${removed} item(ns) de localStorage removido(s)`);
+
+                // Passo 4
+                addStep('Limpando IndexedDB...');
+                const dbs = [];
+                // Nota: não temos forma direta de listar DBs, então vamos tentar limpar as conhecidas
+                try {
+                    // Não há API padrão para deletar DBs, então é manual
+                    const dbRequest = indexedDB.deleteDatabase('FendaUserCache_v1');
+                    dbRequest.onerror = () => console.warn('Erro ao deletar DB');
+                    dbRequest.onsuccess = () => {
+                        document.querySelector('.step:last-child').classList.add('done');
+                        addStep('✅ IndexedDB limpo');
+                    };
+                } catch (e) {
+                    document.querySelector('.step:last-child').classList.add('done');
+                    addStep('✅ IndexedDB limpo');
+                }
+
+                // Passo 5
+                addStep('Recarregando página...');
+                statusEl.textContent = 'Recarregando em 2 segundos...';
+                
+                setTimeout(() => {
+                    // Force refresh com Ctrl+Shift+R (hard refresh)
+                    location.href = location.href.split('?')[0] + '?t=' + Date.now();
+                }, 2000);
+
+            } catch (error) {
+                const step = document.querySelector('.step:last-child');
+                if (step) step.classList.add('error');
+                statusEl.innerHTML = `❌ Erro: ${error.message}<br><br><a href="/" style="color: #a78bfa; text-decoration: none;">Clique aqui para voltar</a>`;
+            }
+        }
+
+        // Iniciar
+        window.addEventListener('load', forceUpdate);
+    </script>
+</body>
+</html>
