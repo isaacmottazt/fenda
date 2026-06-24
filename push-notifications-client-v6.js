@@ -555,11 +555,13 @@ window.addEventListener('load', async () => {
       // Iniciar sincronização entre abas (StorageEvent)
       setupCrossBrowserTabSync();
 
-      // Iniciar sincronização real-time (múltiplos dispositivos)
-      await setupRealtimeSync();
-
-      // Iniciar polling (fallback)
+      // Iniciar polling (fallback - sempre ativo)
       await startNotificationPolling();
+
+      // Iniciar sincronização real-time (múltiplos dispositivos) - com delay
+      setTimeout(() => {
+        setupRealtimeSync().catch(e => console.warn('[Push] Real-time init failed:', e));
+      }, 500);
 
       console.log('[Push] ✅ Sistema v6 pronto (Hybrid Mode)');
     } catch (e) {
