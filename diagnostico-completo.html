@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Diagnóstico Completo - Notificações</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #0f0f1e;
+            color: #fff;
+            padding: 16px;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #a78bfa;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .section {
+            background: rgba(167, 139, 250, 0.05);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            font-size: 12px;
+        }
+        
+        .section-title {
+            color: #a78bfa;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .log-line {
+            margin: 4px 0;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .log-ok {
+            color: #34d399;
+            border-left: 3px solid #34d399;
+        }
+        
+        .log-error {
+            color: #f87171;
+            border-left: 3px solid #f87171;
+        }
+        
+        .log-warning {
+            color: #fbbf24;
+            border-left: 3px solid #fbbf24;
+        }
+        
+        .log-info {
+            color: #60a5fa;
+            border-left: 3px solid #60a5fa;
+        }
+        
+        button {
+            background: #a78bfa;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 8px 4px 8px 0;
+        }
+        
+        button:active {
+            opacity: 0.8;
+        }
+        
+        .section-actions {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+        }
+        
+        .status-item {
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico Completo - Notificações v6</h1>
+        
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const Log = {
+            logs: [],
+            
+            add(category, type, message) {
+                this.logs.push({ category, type, message, time: new Date() });
+                this.render();
+            },
+            
+            render() {
+                const output = document.getElementById('output');
+                const grouped = {};
+                
+                this.logs.forEach(log => {
+                    if (!grouped[log.category]) grouped[log.category] = [];
+                    grouped[log.category].push(log);
+                });
+                
+                output.innerHTML = Object.entries(grouped).map(([category, logs]) => `
+                    <div class="section">
+                        <div class="section-title">${category}</div>
+                        ${logs.map(log => `
+                            <div class="log-line log-${log.type}">
+                                [${log.time.toLocaleTimeString()}] ${log.message}
+                            </div>
+                        `).join('')}
+                    </div>
+                `).join('');
+            }
+        };
+
+        async function runDiagnostics() {
+            Log.add('Inicialização', 'info', 'Iniciando diagnóstico completo...');
+
+            // ========== 1. SCRIPTS CARREGADOS ==========
+            Log.add('1. Scripts', window.pushNotifications ? 'ok' : 'error', 
+                `window.pushNotifications: ${typeof window.pushNotifications}`);
+            
+            Log.add('1. Scripts', window.FendaNotifications ? 'ok' : 'error', 
+                `FendaNotifications: ${typeof FendaNotifications}`);
+            
+            Log.add('1. Scripts', window.AppState ? 'ok' : 'error', 
+                `AppState: ${typeof AppState}`);
+            
+            Log.add('1. Scripts', window.supabaseClient ? 'ok' : 'error', 
+                `supabaseClient (window): ${typeof window.supabaseClient}`);
+
+            // ========== 2. SUPABASE ==========
+            const client = window.supabaseClient;
+            if (client) {
+                Log.add('2. Supabase', 'ok', 'Client disponível');
+                
+                try {
+                    const { data: { session } } = await client.auth.getSession();
+                    if (session) {
+                        Log.add('2. Supabase', 'ok', `Autenticado como: ${session.user.email}`);
+                        Log.add('2. Supabase', 'ok', `User ID: ${session.user.id}`);
+                    } else {
+                        Log.add('2. Supabase', 'error', 'Não autenticado');
+                    }
+                } catch (e) {
+                    Log.add('2. Supabase', 'error', `Erro: ${e.message}`);
+                }
+            } else {
+                Log.add('2. Supabase', 'error', 'supabaseClient não encontrado');
+            }
+
+            // ========== 3. TABELAS SUPABASE ==========
+            if (client) {
+                try {
+                    const { data: { session } } = await client.auth.getSession();
+                    
+                    if (session) {
+                        // Verificar admin_messages
+                        const { data: messages, error: msgError } = await client
+                            .from('admin_messages')
+                            .select('id, title, created_at')
+                            .order('created_at', { ascending: false })
+                            .limit(5);
+                        
+                        if (msgError) {
+                            Log.add('3. Tabelas', 'error', `admin_messages erro: ${msgError.message}`);
+                        } else {
+                            Log.add('3. Tabelas', 'ok', `admin_messages: ${messages?.length || 0} registros`);
+                            messages?.forEach(m => {
+                                Log.add('3. Tabelas', 'info', `  - "${m.title}" (${new Date(m.created_at).toLocaleTimeString()})`);
+                            });
+                        }
+                        
+                        // Verificar message_deliveries
+                        const { data: deliveries, error: delError } = await client
+                            .from('message_deliveries')
+                            .select('id, status, message_id, created_at')
+                            .eq('user_id', session.user.id)
+                            .order('created_at', { ascending: false })
+                            .limit(5);
+                        
+                        if (delError) {
+                            Log.add('3. Tabelas', 'error', `message_deliveries erro: ${delError.message}`);
+                        } else {
+                            Log.add('3. Tabelas', 'ok', `message_deliveries: ${deliveries?.length || 0} registros`);
+                            deliveries?.forEach(d => {
+                                Log.add('3. Tabelas', d.status === 'pending' ? 'warning' : 'info', 
+                                    `  - ID ${d.message_id} [${d.status}] (${new Date(d.created_at).toLocaleTimeString()})`);
+                            });
+                        }
+                    }
+                } catch (e) {
+                    Log.add('3. Tabelas', 'error', `Erro ao verificar tabelas: ${e.message}`);
+                }
+            }
+
+            // ========== 4. PERMISSÕES ==========
+            Log.add('4. Permissões', 'info', `Notification.permission: ${Notification.permission}`);
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    Log.add('4. Permissões', 'ok', `Service Worker: ${regs.length} registrado(s)`);
+                } catch (e) {
+                    Log.add('4. Permissões', 'error', `SW erro: ${e.message}`);
+                }
+            } else {
+                Log.add('4. Permissões', 'error', 'Service Worker não suportado');
+            }
+
+            // ========== 5. PUSH NOTIFICATIONS STATE ==========
+            if (window.pushNotifications) {
+                Log.add('5. Push State', 'ok', 'window.pushNotifications existe');
+                Log.add('5. Push State', 'info', `Funções: ${Object.keys(window.pushNotifications).join(', ')}`);
+            } else {
+                Log.add('5. Push State', 'error', 'window.pushNotifications NÃO existe');
+            }
+
+            // ========== 6. FENDA NOTIFICATIONS STATE ==========
+            if (window.FendaNotifications) {
+                Log.add('6. Fenda State', 'ok', 'FendaNotifications existe');
+                Log.add('6. Fenda State', 'info', `Métodos: ${Object.keys(window.FendaNotifications).join(', ')}`);
+                
+                // Testar add
+                try {
+                    const unreadCount = window.FendaNotifications.getUnreadCount();
+                    Log.add('6. Fenda State', 'ok', `Notificações não lidas: ${unreadCount}`);
+                } catch (e) {
+                    Log.add('6. Fenda State', 'error', `Erro ao contar não lidas: ${e.message}`);
+                }
+            } else {
+                Log.add('6. Fenda State', 'error', 'FendaNotifications NÃO existe');
+            }
+
+            // ========== 7. TESTE DE NOTIFICAÇÃO LOCAL ==========
+            Log.add('Teste Local', 'info', 'Tentando criar notificação de teste...');
+            try {
+                if (window.FendaNotifications && window.FendaNotifications.add) {
+                    window.FendaNotifications.add({
+                        type: 'system',
+                        title: '🧪 Teste',
+                        body: 'Se você vê isto, FendaNotifications.add funciona',
+                        icon: 'notifications',
+                        iconBg: '#34d399'
+                    });
+                    Log.add('Teste Local', 'ok', 'Notificação de teste adicionada');
+                } else {
+                    Log.add('Teste Local', 'error', 'FendaNotifications.add não disponível');
+                }
+            } catch (e) {
+                Log.add('Teste Local', 'error', `Erro: ${e.message}`);
+            }
+
+            // ========== 8. RESUMO FINAL ==========
+            Log.add('Resumo', 'info', '✅ Diagnóstico concluído');
+            
+            const checks = {
+                'push-script': !!window.pushNotifications,
+                'fenda-notif': !!window.FendaNotifications,
+                'app-state': !!window.AppState,
+                'supabase': !!window.supabaseClient,
+                'sw': 'serviceWorker' in navigator,
+                'permission': Notification.permission === 'granted'
+            };
+            
+            const passed = Object.values(checks).filter(Boolean).length;
+            Log.add('Resumo', passed >= 5 ? 'ok' : 'warning', 
+                `Status: ${passed}/6 verificações passaram`);
+        }
+
+        // Rodar ao carregar
+        window.addEventListener('load', runDiagnostics);
+    </script>
+</body>
+</html>
