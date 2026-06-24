@@ -1,86 +1,56 @@
 {
   "name": "Fenda Music",
   "short_name": "Fenda",
-
   "id": "fenda-music-pwa",
-
   "description": "Fenda Music: Streaming de música com qualidade premium. Ouça suas músicas favoritas em qualquer lugar, crie playlists personalizadas, descubra novos artistas, sincronize entre dispositivos e aproveite recomendações baseadas no seu gosto musical. Acesso offline, modo escuro, histórico de reprodução e muito mais.",
   "lang": "pt-BR",
   "dir": "ltr",
   "categories": ["music", "entertainment"],
-
   "start_url": "/inicio",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-
   "theme_color": "#7c3aed",
   "background_color": "#0a0612",
-
   "icons": [
-  "icons": [
-  {
-    "src": "/icons/icon-192.png",
-    "sizes": "192x192",
-    "type": "image/png"
-  },
-  {
-    "src": "/icons/icon-512.png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "maskable"
-  }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
-
   "shortcuts": [
     {
       "name": "Buscar músicas",
       "short_name": "Buscar",
       "description": "Pesquise no catálogo do Fenda Music",
       "url": "/busca",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Minha biblioteca",
       "short_name": "Biblioteca",
       "description": "Veja suas playlists, histórico e artistas",
       "url": "/biblioteca",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
-    }
-  ],
-
-  "share_target": {
-    "action": "/inicio",
-    "method": "GET",
-    "enctype": "application/x-www-form-urlencoded",
-    "params": {
-      "title": "title",
-      "text":  "text",
-      "url":   "url"
-    }
-  },
-
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-
-  "widgets": [
-    {
-      "name": "Tocando agora",
-      "short_name": "Fenda",
-      "description": "Veja e controle a música tocando no Fenda Music",
-      "tag": "fenda-now-playing",
-      "ms_ac_template": "/widgets/now-playing.json",
-      "data": "/widgets/now-playing-data.json",
-      "type": "application/json",
-      "auth": false,
-      "update": 300,
       "icons": [
-        { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
       ]
     }
   ],
-
   "screenshots": [
     {
       "src": "/screenshots/home.png",
@@ -90,7 +60,6 @@
       "label": "Tela inicial do Fenda Music"
     }
   ],
-
   "related_applications": [],
   "prefer_related_applications": false
 }
