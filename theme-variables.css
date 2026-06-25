@@ -1,0 +1,342 @@
+/* THEME-VARIABLES.CSS - Define variáveis globais para cores temáticas */
+/* Este arquivo deve ser carregado ANTES de todos os outros CSS */
+
+:root {
+  /* CORES PRIMÁRIAS - Roxo padrão */
+  --primary-base: #7c3aed;
+  --primary-hi: #a855f7;
+  --primary-up: #c084fc;
+  --primary-dark: #5b21b6;
+  --primary-darker: #4c1d95;
+  --primary-glow: rgba(124, 58, 237, 0.45);
+  --primary-soft: rgba(124, 58, 237, 0.15);
+  --primary-line: rgba(146, 76, 255, 0.25);
+  --primary-grad: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  --primary-grad-dark: linear-gradient(135deg, #9333ea 0%, #7c3aed 55%, #5b21b6 100%);
+  --primary-grad-light: linear-gradient(135deg, #be185d, #7c3aed);
+  
+  /* VARIAÇÕES SECUNDÁRIAS */
+  --secondary-hi: #c084fc;
+  --secondary-glow: rgba(192, 132, 252, 0.3);
+  --secondary-soft: rgba(192, 132, 252, 0.15);
+  
+  /* GRADIENTES ESPECÍFICOS */
+  --grad-hero: linear-gradient(120deg, #ffffff 25%, #c084fc 65%, #d946ef 100%);
+  --grad-profile: linear-gradient(145deg, #7c3aed 0%, #4c1d95 50%, #1e0938 100%);
+  --grad-overlay: linear-gradient(180deg, #c084fc, #d946ef);
+  --grad-magenta: linear-gradient(135deg, #c026d3, #7c3aed);
+}
+
+/* 
+  SUBSTITUIÇÕES DE CORES HARDCODED
+  
+  Todos os elementos que usam cores roxo específicas agora usam variáveis
+  O themes.js vai atualizar essas variáveis dinamicamente
+*/
+
+/* BASE.CSS - Mapeamento de cores roxa */
+.ctx-icon-purple {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+}
+
+/* BIBLIOTECA.CSS - Usando variáveis em vez de cores hardcoded */
+.lib-violet,
+.lib-accent,
+.lib-primary {
+  color: var(--primary-base) !important;
+}
+
+.lib-violet-hi,
+.lib-accent-hi {
+  color: var(--primary-hi) !important;
+}
+
+.lib-violet-up {
+  color: var(--primary-up) !important;
+}
+
+.lib-violet-glow {
+  color: var(--primary-glow) !important;
+}
+
+/* ARTIST-DETAIL.CSS */
+.artist-detail-header,
+.artist-header-title {
+  background: var(--primary-grad-dark) !important;
+}
+
+.ado-stats-val {
+  color: var(--primary-hi) !important;
+}
+
+.ado-bio-toggle:active {
+  color: var(--primary-up) !important;
+}
+
+.artist-featured {
+  color: var(--primary-up) !important;
+}
+
+/* INICIO.CSS */
+.home-gradient,
+.home-hero,
+.hero-banner {
+  background: var(--primary-grad) !important;
+}
+
+.featured-accent {
+  color: var(--primary-hi) !important;
+}
+
+.pulse-dot {
+  background: var(--primary-base) !important;
+  box-shadow: 0 0 0 3px var(--primary-glow) !important;
+}
+
+/* GLOBAL - Gradientes que aparecem em vários lugares */
+.gradient-primary {
+  background: var(--primary-grad) !important;
+}
+
+.gradient-dark {
+  background: var(--primary-grad-dark) !important;
+}
+
+.gradient-light {
+  background: var(--primary-grad-light) !important;
+}
+
+.gradient-hero {
+  background: var(--grad-hero) !important;
+}
+
+.gradient-profile {
+  background: var(--grad-profile) !important;
+}
+
+.gradient-magenta {
+  background: var(--grad-magenta) !important;
+}
+
+/* BRILHOS E GLOWS */
+.glow-primary {
+  box-shadow: 0 0 20px var(--primary-glow) !important;
+}
+
+.border-primary {
+  border-color: var(--primary-base) !important;
+}
+
+.border-soft {
+  border-color: var(--primary-soft) !important;
+}
+
+/* ÍCONES E ACENTOS */
+[data-theme-color] {
+  color: var(--primary-base) !important;
+}
+
+[data-theme-bg] {
+  background: var(--primary-base) !important;
+}
+
+[data-theme-grad] {
+  background: var(--primary-grad) !important;
+}
+
+/* BUTTONS COM TEMA */
+.btn-primary,
+.btn-theme {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+.btn-primary:active,
+.btn-primary:hover {
+  background: var(--primary-hi) !important;
+}
+
+.btn-secondary {
+  border-color: var(--primary-base) !important;
+  color: var(--primary-hi) !important;
+  background: var(--primary-soft) !important;
+}
+
+/* CARDS E CONTAINERS */
+.card-accent {
+  border-color: var(--primary-line) !important;
+  background: var(--primary-soft) !important;
+}
+
+.card-highlight {
+  background: var(--primary-glow) !important;
+}
+
+/* PROGRESS E INDICADORES */
+.progress-fill,
+.progress-bar-fill {
+  background: var(--primary-base) !important;
+}
+
+.indicator-primary {
+  background: var(--primary-base) !important;
+  box-shadow: 0 0 12px var(--primary-glow) !important;
+}
+
+/* BADGES */
+.badge-primary {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+  border-color: var(--primary-line) !important;
+}
+
+/* DIVIDERS E LINHAS */
+.divider-primary {
+  background: var(--primary-line) !important;
+}
+
+/* HOVER STATES */
+.hover-primary:hover {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+}
+
+.text-primary {
+  color: var(--primary-base) !important;
+}
+
+.text-primary-hi {
+  color: var(--primary-hi) !important;
+}
+
+.text-primary-up {
+  color: var(--primary-up) !important;
+}
+
+/* ANIMAÇÕES COM COR PRIMÁRIA */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 10px var(--primary-glow); }
+  50% { box-shadow: 0 0 20px var(--primary-glow); }
+}
+
+.glow-animate {
+  animation: glow-pulse 2s infinite;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar-thumb {
+  background: var(--primary-soft) !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-line) !important;
+}
+
+/* FOCUS E OUTLINE */
+:focus-visible {
+  outline-color: var(--primary-base) !important;
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--primary-base) !important;
+  box-shadow: 0 0 0 3px var(--primary-soft) !important;
+}
+
+/* SELECTION */
+::selection {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+::-moz-selection {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+/* LINKS */
+a {
+  color: var(--primary-base) !important;
+}
+
+a:active,
+a:visited {
+  color: var(--primary-hi) !important;
+}
+
+/* PLACEHOLDERS */
+input::placeholder {
+  color: rgba(255,255,255,0.3) !important;
+}
+
+/* SOMBRAS COM COR PRIMÁRIA */
+.shadow-primary {
+  box-shadow: 0 4px 15px var(--primary-glow) !important;
+}
+
+.shadow-primary-lg {
+  box-shadow: 0 8px 30px var(--primary-glow) !important;
+}
+
+/* TABS E NAVEGAÇÃO */
+.tab-active {
+  color: var(--primary-hi) !important;
+  border-bottom-color: var(--primary-hi) !important;
+}
+
+.nav-accent {
+  color: var(--primary-base) !important;
+}
+
+/* OVERLAYS E BACKDROPS */
+.backdrop-primary {
+  background: var(--primary-soft) !important;
+}
+
+/* LOADER E SPINNER */
+.loader-primary {
+  border-color: var(--primary-glow) !important;
+  border-right-color: var(--primary-base) !important;
+}
+
+/* TOOLTIPS */
+.tooltip-primary {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+/* MODALS */
+.modal-header-accent {
+  background: var(--primary-grad) !important;
+  color: white !important;
+}
+
+/* ESTADOS DE ERRO/SUCESSO/WARNING */
+/* (mantém as cores específicas, mas pode ser estendido) */
+
+/* ANIMAÇÕES */
+@keyframes color-shift {
+  0% { color: var(--primary-base); }
+  50% { color: var(--primary-hi); }
+  100% { color: var(--primary-base); }
+}
+
+.animate-color-primary {
+  animation: color-shift 2s infinite;
+}
+
+/* RESPONSIVO - Ajustes para mobile */
+@media (max-width: 768px) {
+  :root {
+    /* Cores permanecem iguais, apenas layouts mudam */
+  }
+}
+
+/* MODO CLARO - Ajustes específicos */
+@media (prefers-color-scheme: light) {
+  :root {
+    --primary-soft: rgba(124, 58, 237, 0.08) !important;
+    --primary-glow: rgba(124, 58, 237, 0.2) !important;
+  }
+}
