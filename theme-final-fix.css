@@ -1,0 +1,277 @@
+/* THEME-FINAL-FIX.CSS - Sobrescreve TODOS os roxos restantes */
+/* Este arquivo deve ser carregado DEPOIS de theme-overrides.css */
+
+/* ========== BASE.CSS OVERRIDES ========== */
+
+/* Stroke roxo */
+.stroke-violet,
+svg [stroke="#a855f7"],
+.icon-stroke-violet {
+  stroke: var(--primary-hi) !important;
+}
+
+/* Cores de texto */
+.text-hex-c084fc,
+.color-light-violet {
+  color: var(--primary-up) !important;
+}
+
+/* Gradientes com roxo */
+.grad-violet-light,
+.gradient-light-violet {
+  background: linear-gradient(90deg, var(--primary-base), var(--primary-up)) !important;
+}
+
+.gradient-violet-main {
+  background: var(--primary-base) !important;
+}
+
+.background-light-violet {
+  background: var(--primary-up) !important;
+}
+
+/* ========== PAINEL.CSS OVERRIDES ========== */
+
+.painel-gradient,
+.painel-grad,
+.painel-header-gradient {
+  background: linear-gradient(180deg, var(--primary-hi), var(--primary-base)) !important;
+}
+
+.painel-text-violet,
+.painel-color-text {
+  color: var(--primary-hi) !important;
+}
+
+.painel-bg-violet {
+  background: var(--primary-hi) !important;
+}
+
+/* ========== PERFIL.CSS OVERRIDES ========== */
+
+.profile-banner,
+.profile-gradient,
+.profile-hero-gradient {
+  background: linear-gradient(135deg, #3b1d8a 0%, var(--primary-dark) 40%, var(--primary-darker) 70%, var(--primary-base) 100%) !important;
+}
+
+.profile-edit-chip:active {
+  background: var(--primary-soft) !important;
+  border-color: var(--primary-base) !important;
+}
+
+.profile-modal-gradient,
+.modal-gradient-violet {
+  background: linear-gradient(135deg, #fff, var(--primary-up)) !important;
+}
+
+.file-name-color,
+.modal-file-label .file-name {
+  color: var(--primary-up) !important;
+}
+
+.modal-actions-wrapper button:last-child {
+  background: linear-gradient(135deg, var(--primary-base), var(--primary-dark)) !important;
+}
+
+/* ========== NOTIFICATIONS.CSS OVERRIDES ========== */
+
+.notif-text-violet,
+.notification-color-text {
+  color: var(--primary-up) !important;
+}
+
+.notif-border-violet {
+  border-bottom-color: var(--primary-up) !important;
+}
+
+.notif-gradient-violet {
+  background: linear-gradient(135deg, var(--primary-darker) 0%, var(--primary-base) 100%) !important;
+}
+
+.notif-badge-bg,
+.notification-badge {
+  background: var(--primary-hi) !important;
+}
+
+/* ========== SVG E ICONS ========== */
+
+/* Sobrescreve cores inline em SVG */
+svg [fill="#7c3aed"],
+svg [fill="#a855f7"],
+svg [fill="#c084fc"],
+svg [fill="#9333ea"],
+svg [fill="#5b21b6"],
+svg [fill="#d8b4fe"],
+svg [fill="#be185d"],
+svg [fill="#c026d3"],
+svg [stroke="#7c3aed"],
+svg [stroke="#a855f7"],
+svg [stroke="#c084fc"],
+svg [stroke="#9333ea"],
+svg [stroke="#5b21b6"],
+svg [stroke="#d8b4fe"],
+svg [stroke="#be185d"],
+svg [stroke="#c026d3"] {
+  fill: var(--primary-base) !important;
+  stroke: var(--primary-base) !important;
+}
+
+/* ========== BADGES E PILLS ========== */
+
+.badge-violet-hex {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+}
+
+.pill-violet {
+  background: var(--primary-soft) !important;
+  border-color: var(--primary-line) !important;
+  color: var(--primary-hi) !important;
+}
+
+/* ========== CIRCLES E AVATARS ========== */
+
+.circle-violet,
+.avatar-circle-violet {
+  background: var(--primary-base) !important;
+  border-color: var(--primary-hi) !important;
+}
+
+.radial-gradient-violet {
+  background: radial-gradient(circle, var(--primary-hi), var(--primary-base)) !important;
+}
+
+/* ========== BUTTONS E CONTROLS ========== */
+
+.btn-violet-hex,
+.button-violet-hex {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+.btn-violet-hex:hover,
+.button-violet-hex:hover {
+  background: var(--primary-hi) !important;
+}
+
+/* ========== ESPECIAIS ========== */
+
+/* Dados attributes com cores roxo */
+[style*="#7c3aed"],
+[style*="#a855f7"],
+[style*="#c084fc"],
+[style*="#9333ea"],
+[style*="#5b21b6"],
+[style*="#d8b4fe"],
+[style*="#be185d"],
+[style*="#c026d3"] {
+  /* Não conseguimos sobrescrever inline direto, mas as variáveis CSS cobrem */
+}
+
+/* ========== FORCED VARIABLES EVERYWHERE ========== */
+
+body, body * {
+  --primary-base: var(--primary-base) !important;
+  --primary-hi: var(--primary-hi) !important;
+  --primary-up: var(--primary-up) !important;
+  --primary-grad: var(--primary-grad) !important;
+}
+
+/* ========== CLASSES DINÂMICAS ========== */
+
+/* Para classes geradas dinamicamente */
+[class*="violet"],
+[class*="purple"],
+[class*="hex-7c3a"],
+[class*="hex-a855"],
+[class*="hex-c084"],
+[class*="hex-9333"] {
+  /* Cobrir via CSS é impossível pra inline styles
+     A solução é atualizar os JS que geram essas classes */
+}
+
+/* ========== ÚLTIMO RESORT - CORES ESPECÍFICAS ========== */
+
+/* Avatar circles em home */
+.home-avatar,
+.user-avatar-home,
+.greeting-avatar {
+  background: var(--primary-base) !important;
+  border-color: var(--primary-hi) !important;
+}
+
+/* Star icons */
+.star-icon,
+.star-favorite,
+.icon-star {
+  color: var(--primary-hi) !important;
+}
+
+/* Play buttons circulares */
+.play-btn-circle,
+.circle-play-btn,
+[class*="play-circle"] {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+/* Badges de contagem */
+.badge-count,
+.count-badge,
+[class*="badge-count"] {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+}
+
+/* Botões "Salvar" em modais */
+[class*="btn-save"],
+[class*="save-button"],
+.modal-save-btn {
+  background: var(--primary-base) !important;
+  color: white !important;
+}
+
+/* Ícones de download */
+.download-icon,
+.icon-download,
+[class*="download"] {
+  color: var(--primary-base) !important;
+}
+
+/* Ícones de coração/favoritos */
+.heart-icon,
+.icon-heart,
+.favorite-icon {
+  color: var(--primary-base) !important;
+}
+
+/* Ícones de relógio/ouvidas */
+.history-icon,
+.clock-icon,
+.icon-history {
+  color: var(--primary-base) !important;
+}
+
+/* Badges de números */
+.number-badge,
+[class*="play-count"],
+[class*="listen-count"] {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+  border-color: var(--primary-line) !important;
+}
+
+/* Botões "Relevância" e similares */
+[class*="relevancia"],
+[class*="sort-btn"],
+[class*="filter-btn"] {
+  background: var(--primary-soft) !important;
+  color: var(--primary-hi) !important;
+  border-color: var(--primary-line) !important;
+}
+
+/* IMPORTANTE: força recalc de CSS */
+html, body {
+  color-scheme: dark;
+}
