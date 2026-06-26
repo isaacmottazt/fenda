@@ -1,0 +1,143 @@
+/* THEME-OVERRIDES-CLEAN.CSS - APENAS substitui cores roxo, mantém design 100% original */
+/* Carrega DEPOIS de theme-variables.css */
+
+/* ========== VARIÁVEIS CSS - SUBSTITUI NAS CLASSES ORIGINAIS ========== */
+
+:root {
+  /* Substitui as variáveis originais roxo pelas nossas dinâmicas */
+  --vp-violet: var(--primary-base);
+  --vp-violet-up: var(--primary-up);
+  --lib-violet: var(--primary-base);
+  --lib-violet-hi: var(--primary-hi);
+  --lib-violet-up: var(--primary-up);
+  --lib-violet-glow: var(--primary-glow);
+}
+
+/* ========== SOBRESCREVE SÓ CORES HARDCODED, NADA DE DESIGN ========== */
+
+/* Base.css - stroke roxo */
+.stroke-violet,
+[stroke="#a855f7"] {
+  stroke: var(--primary-hi) !important;
+}
+
+/* Base.css - color roxo */
+.text-violet {
+  color: var(--primary-up) !important;
+}
+
+/* Base.css - gradientes */
+.gradient-violet {
+  background: linear-gradient(90deg, var(--primary-base), var(--primary-up)) !important;
+}
+
+/* Biblioteca.css - variáveis */
+#biblioteca {
+  --lib-violet: var(--primary-base);
+  --lib-violet-hi: var(--primary-hi);
+  --lib-violet-up: var(--primary-up);
+  --lib-violet-glow: var(--primary-glow);
+  --lib-violet-dark: var(--primary-dark);
+  --lib-violet-darker: var(--primary-darker);
+}
+
+/* Biblioteca.css - gradientes específicos */
+.lib-month-summary {
+  background: linear-gradient(120deg, #ffffff 25%, var(--primary-up) 65%, #d946ef 100%) !important;
+}
+
+.playlist-card-gradient {
+  background: linear-gradient(135deg, var(--primary-darker), var(--primary-dark)) !important;
+}
+
+.artist-avatar-glow {
+  background: radial-gradient(circle, var(--primary-hi), var(--primary-base)) !important;
+}
+
+/* Painel.css */
+.painel-gradient {
+  background: linear-gradient(180deg, var(--primary-hi), var(--primary-base)) !important;
+}
+
+.painel-text {
+  color: var(--primary-hi) !important;
+}
+
+/* Perfil.css */
+.profile-banner {
+  background: linear-gradient(135deg, #3b1d8a 0%, var(--primary-dark) 40%, var(--primary-darker) 70%, var(--primary-base) 100%) !important;
+}
+
+.modal-gradient {
+  background: linear-gradient(135deg, #fff, var(--primary-up)) !important;
+}
+
+/* Notifications.css */
+.notif-gradient {
+  background: linear-gradient(135deg, var(--primary-darker) 0%, var(--primary-base) 100%) !important;
+}
+
+.notif-badge {
+  background: var(--primary-hi) !important;
+}
+
+/* ========== SVG - SÓ CORES ========== */
+
+svg [fill="#7c3aed"],
+svg [fill="#a855f7"],
+svg [fill="#c084fc"],
+svg [fill="#9333ea"] {
+  fill: var(--primary-base) !important;
+}
+
+svg [stroke="#7c3aed"],
+svg [stroke="#a855f7"],
+svg [stroke="#c084fc"],
+svg [stroke="#9333ea"] {
+  stroke: var(--primary-base) !important;
+}
+
+/* ========== INLINE STYLES - SÓ CORES ========== */
+
+/* Backgrounds inline roxo */
+[style*="background: #7c3aed"],
+[style*="background: #a855f7"],
+[style*="background: #c084fc"] {
+  background: var(--primary-base) !important;
+}
+
+[style*="background: #9333ea"] {
+  background: var(--primary-darker) !important;
+}
+
+/* Colors inline roxo */
+[style*="color: #c084fc"] {
+  color: var(--primary-up) !important;
+}
+
+[style*="color: #a855f7"] {
+  color: var(--primary-hi) !important;
+}
+
+[style*="color: #7c3aed"] {
+  color: var(--primary-base) !important;
+}
+
+/* Borders inline roxo */
+[style*="border-color: #7c3aed"],
+[style*="border-color: #a855f7"] {
+  border-color: var(--primary-line) !important;
+}
+
+/* ========== TUDO MAIS FICA ORIGINAL ========== */
+
+/* Não mexe em:
+   - Layouts
+   - Fontes
+   - Tamanhos
+   - Shadows
+   - Spacing
+   - Positioning
+   - Borders (estruturais)
+   - Backgrounds (estruturais)
+*/
