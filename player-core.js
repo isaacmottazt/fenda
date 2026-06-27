@@ -1064,12 +1064,25 @@ function checkDeepLink() {
     const urlParams = new URLSearchParams(window.location.search);
     const musicId = urlParams.get('music_id');
     const timestamp = parseInt(urlParams.get('t')) || 0;
+    const isShared = urlParams.get('share') === '1';
+    
     if (musicId && AppState.musics.length > 0) {
         const targetMusic = AppState.musics.find(m => m.id == musicId);
         if (targetMusic) {
             setTimeout(() => {
                 playMusicTrack(targetMusic);
-                if (timestamp > 0 && DOM.audio) { DOM.audio.addEventListener('loadedmetadata', () => { DOM.audio.currentTime = timestamp; }, { once: true }); }
+                if (timestamp > 0 && DOM.audio) { 
+                    DOM.audio.addEventListener('loadedmetadata', () => { 
+                        DOM.audio.currentTime = timestamp;
+                        // Se é link compartilhado, iniciar modo preview
+                        if (isShared && typeof PreviewManager !== 'undefined') {
+                            PreviewManager.initializePreview(DOM.audio, timestamp);
+                        }
+                    }, { once: true }); 
+                } else if (isShared && typeof PreviewManager !== 'undefined') {
+                    // Preview do início se não houver timestamp
+                    PreviewManager.initializePreview(DOM.audio, 0);
+                }
                 showToast(`Tocando: ${targetMusic.title}${timestamp ? ` a partir de ${formatTime(timestamp)}` : ''}`, "success");
             }, 500);
         } else showToast("Música não encontrada", "danger");

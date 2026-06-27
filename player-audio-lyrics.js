@@ -269,29 +269,8 @@ function initAudioAndLyricsEngine() {
     // Tenta novamente após render (player pode não estar no DOM ainda)
     setTimeout(attachScrollListener, 1000);
 
-    // ===== Botão de compartilhar (movido para fora do timeupdate) =====
-    const shareBtn = document.getElementById('shareMusicBtn');
-    if (shareBtn && !shareBtn.hasAttribute('data-listener-added')) {
-        shareBtn.setAttribute('data-listener-added', 'true');
-        shareBtn.addEventListener('click', () => {
-            const music = AppState.musics.find(m => m.id === AppState.currentMusicId);
-            if (!music) {
-                showToast("Nenhuma música tocando no momento", "danger");
-                return;
-            }
-            const currentTime = DOM.audio ? Math.floor(DOM.audio.currentTime) : 0;
-            const baseUrl = window.location.href.split('?')[0];
-            const musicLink = `${baseUrl}?music_id=${music.id}&t=${currentTime}`;
-            const text = `🎵 Estou ouvindo "${music.title}" - ${music.artist} ${currentTime ? `aos ${formatTime(currentTime)}` : ''}! 🎧\n\nOuça aqui: ${musicLink}`;
-            
-            if (navigator.share) {
-                navigator.share({ title: music.title, text: `Ouça "${music.title}" - ${music.artist}`, url: musicLink });
-            } else {
-                navigator.clipboard.writeText(text);
-                showToast("Link copiado! Compartilhe com os amigos.", "success");
-            }
-        });
-    }
+    // ===== Botão de compartilhar (novo sistema com preview 30s + imagem) =====
+    ShareUIHandler.init();
 }
 
 function parseLyrics(text) {
