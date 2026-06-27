@@ -8,6 +8,13 @@ const ShareUIHandler = {
      * Inicializa o listener no botão de share
      */
     init() {
+        // Aguardar que todos os módulos estejam carregados
+        if (!window.SharedMusicModule || !window.PreviewManager) {
+            console.warn('[ShareUI] Módulos ainda carregando, tentando novamente em 100ms');
+            setTimeout(() => this.init(), 100);
+            return;
+        }
+
         const shareBtn = document.getElementById('shareMusicBtn');
         if (!shareBtn) {
             console.warn('[ShareUI] Botão de compartilhamento não encontrado');
@@ -22,7 +29,7 @@ const ShareUIHandler = {
         shareBtn.addEventListener('click', () => this.handleShareClick());
         shareBtn.setAttribute('data-share-listener', 'true');
 
-        console.log('[ShareUI] Inicializado');
+        console.log('[ShareUI] Inicializado com sucesso');
     },
 
     /**

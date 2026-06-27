@@ -34,7 +34,8 @@ const SharedMusicModule = {
             try {
                 if (!music || !music.cover) {
                     console.warn('[SharedMusic] Música sem capa, gerando genérica');
-                    resolve(await this._generateGenericImage(music, startTime));
+                    const genericImg = await this._generateGenericImage(music, startTime);
+                    resolve(genericImg);
                     return;
                 }
 
@@ -42,19 +43,21 @@ const SharedMusicModule = {
                 const img = new Image();
                 img.crossOrigin = 'anonymous';
                 
-                img.onload = () => {
+                img.onload = async () => {
                     try {
                         const canvas = this._createShareCanvas(img, music, startTime);
                         resolve(canvas.toDataURL('image/png'));
                     } catch (e) {
                         console.error('[SharedMusic] Erro ao renderizar canvas:', e);
-                        resolve(await this._generateGenericImage(music, startTime));
+                        const genericImg = await this._generateGenericImage(music, startTime);
+                        resolve(genericImg);
                     }
                 };
                 
                 img.onerror = async () => {
                     console.warn('[SharedMusic] Erro ao carregar capa, usando genérica');
-                    resolve(await this._generateGenericImage(music, startTime));
+                    const genericImg = await this._generateGenericImage(music, startTime);
+                    resolve(genericImg);
                 };
                 
                 // URL da imagem no Supabase
@@ -62,9 +65,31 @@ const SharedMusicModule = {
                 
             } catch (e) {
                 console.error('[SharedMusic] Erro geral na geração de imagem:', e);
-                resolve(await this._generateGenericImage(music, startTime));
+                const genericImg = await this._generateGenericImage(music, startTime);
+                resolve(genericImg);
             }
         });
+    },
+
+    /**
+     * Polyfill para roundRect em navegadores antigos
+     * @private
+     */
+    _ensureRoundRect(ctx) {
+        if (!ctx.roundRect) {
+            ctx.roundRect = function(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            };
+        }
     },
 
     /**
@@ -72,84 +97,93 @@ const SharedMusicModule = {
      * @private
      */
     _createShareCanvas(coverImg, music, startTime) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 630;  // Tamanho padrão para Open Graph
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1200;
+            canvas.height = 630;  // Tamanho padrão para Open Graph
+            
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Não foi possível obter contexto 2D do canvas');
+            
+            // Garantir que roundRect existe
+            this._ensureRoundRect(ctx);
+            
+            // Fundo com gradiente sutilmente baseado na cor dominante
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#1a1a2e');
+            gradient.addColorStop(1, '#16213e');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Capa da música (esquerda)
+            const coverSize = 400;
+            const coverX = 50;
+            const coverY = (canvas.height - coverSize) / 2;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+            ctx.clip();
+            ctx.drawImage(coverImg, coverX, coverY, coverSize, coverSize);
+            ctx.restore();
         
-        const ctx = canvas.getContext('2d');
-        
-        // Fundo com gradiente sutilmente baseado na cor dominante
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#1a1a2e');
-        gradient.addColorStop(1, '#16213e');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Sombra na capa
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+            ctx.stroke();
 
-        // Capa da música (esquerda)
-        const coverSize = 400;
-        const coverX = 50;
-        const coverY = (canvas.height - coverSize) / 2;
-        
-        ctx.save();
-        ctx.beginPath();
-        ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
-        ctx.clip();
-        ctx.drawImage(coverImg, coverX, coverY, coverSize, coverSize);
-        ctx.restore();
-        
-        // Sombra na capa
-        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
-        ctx.stroke();
+            // Seção de texto (direita)
+            const textX = coverX + coverSize + 50;
+            const textMaxWidth = canvas.width - textX - 50;
 
-        // Seção de texto (direita)
-        const textX = coverX + coverSize + 50;
-        const textMaxWidth = canvas.width - textX - 50;
-
-        // "Estou ouvindo" label
-        ctx.fillStyle = '#7c3aed';
-        ctx.font = 'bold 28px "Segoe UI", sans-serif';
-        ctx.fillText('🎵 Estou ouvindo', textX, 100);
-
-        // Título da música
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 48px "Segoe UI", sans-serif';
-        ctx.lineWidth = 2;
-        
-        const title = this._wrapText(music.title, 30);
-        title.forEach((line, i) => {
-            ctx.fillText(line, textX, 200 + i * 60);
-        });
-
-        // Artista
-        ctx.fillStyle = '#b0b0b0';
-        ctx.font = '32px "Segoe UI", sans-serif';
-        ctx.fillText(music.artist || 'Artista desconhecido', textX, 320);
-
-        // Tempo de início (se compartilhado de um ponto específico)
-        if (startTime > 0) {
+            // "Estou ouvindo" label
             ctx.fillStyle = '#7c3aed';
+            ctx.font = 'bold 28px "Segoe UI", sans-serif';
+            ctx.fillText('🎵 Estou ouvindo', textX, 100);
+
+            // Título da música
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px "Segoe UI", sans-serif';
+            ctx.lineWidth = 2;
+            
+            const title = this._wrapText(music.title, 30);
+            title.forEach((line, i) => {
+                ctx.fillText(line, textX, 200 + i * 60);
+            });
+
+            // Artista
+            ctx.fillStyle = '#b0b0b0';
+            ctx.font = '32px "Segoe UI", sans-serif';
+            ctx.fillText(music.artist || 'Artista desconhecido', textX, 320);
+
+            // Tempo de início (se compartilhado de um ponto específico)
+            if (startTime > 0) {
+                ctx.fillStyle = '#7c3aed';
+                ctx.font = '20px "Segoe UI", sans-serif';
+                ctx.fillText(`⏱️ Começando em ${this._formatTime(startTime)}`, textX, 380);
+            }
+
+            // Duração do preview
+            ctx.fillStyle = '#999';
             ctx.font = '20px "Segoe UI", sans-serif';
-            ctx.fillText(`⏱️ Começando em ${this._formatTime(startTime)}`, textX, 380);
+            ctx.fillText('Ouça 30s grátis no Fenda Music', textX, 430);
+
+            // Logo/branding
+            ctx.fillStyle = '#7c3aed';
+            ctx.font = 'bold 24px "Segoe UI", sans-serif';
+            ctx.fillText('FENDA', textX, canvas.height - 40);
+
+            ctx.fillStyle = '#666';
+            ctx.font = '16px "Segoe UI", sans-serif';
+            ctx.fillText('Gospel Music Streaming', textX + 120, canvas.height - 45);
+
+            return canvas;
+        } catch (e) {
+            console.error('[SharedMusic] Erro ao criar canvas:', e);
+            throw e;
         }
-
-        // Duração do preview
-        ctx.fillStyle = '#999';
-        ctx.font = '20px "Segoe UI", sans-serif';
-        ctx.fillText('Ouça 30s grátis no Fenda Music', textX, 430);
-
-        // Logo/branding
-        ctx.fillStyle = '#7c3aed';
-        ctx.font = 'bold 24px "Segoe UI", sans-serif';
-        ctx.fillText('FENDA', textX, canvas.height - 40);
-
-        ctx.fillStyle = '#666';
-        ctx.font = '16px "Segoe UI", sans-serif';
-        ctx.fillText('Gospel Music Streaming', textX + 120, canvas.height - 45);
-
-        return canvas;
     },
 
     /**
