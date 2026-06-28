@@ -93,14 +93,14 @@ const SharedMusicModule = {
     },
 
     /**
-     * Cria canvas com capa, título, artista e tempo
+     * Cria canvas com capa, título, artista e tempo (estilo Spotify Wrapped)
      * @private
      */
     _createShareCanvas(coverImg, music, startTime) {
         try {
             const canvas = document.createElement('canvas');
-            canvas.width = 1200;
-            canvas.height = 630;  // Tamanho padrão para Open Graph
+            canvas.width = 1080;
+            canvas.height = 1350;  // Proporção para Instagram Stories + mais
             
             const ctx = canvas.getContext('2d');
             if (!ctx) throw new Error('Não foi possível obter contexto 2D do canvas');
@@ -108,76 +108,80 @@ const SharedMusicModule = {
             // Garantir que roundRect existe
             this._ensureRoundRect(ctx);
             
-            // Fundo com gradiente sutilmente baseado na cor dominante
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            gradient.addColorStop(0, '#1a1a2e');
-            gradient.addColorStop(1, '#16213e');
-            ctx.fillStyle = gradient;
+            // ===== FUNDO ROXO SÓLIDO =====
+            ctx.fillStyle = '#6b21a8';  // Roxo Fenda
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Capa da música (esquerda)
-            const coverSize = 400;
-            const coverX = 50;
-            const coverY = (canvas.height - coverSize) / 2;
+            // ===== CAPA DA MÚSICA (CENTRALIZADA NO TOPO) =====
+            const coverSize = 600;
+            const coverX = (canvas.width - coverSize) / 2;
+            const coverY = 120;
             
+            // Desenhar capa com cantos arredondados
             ctx.save();
             ctx.beginPath();
-            ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+            ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
             ctx.clip();
             ctx.drawImage(coverImg, coverX, coverY, coverSize, coverSize);
             ctx.restore();
-        
-            // Sombra na capa
-            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            
+            // Sombra na capa (sutil)
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+            ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
             ctx.stroke();
+            ctx.shadowColor = 'transparent';
 
-            // Seção de texto (direita)
-            const textX = coverX + coverSize + 50;
-            const textMaxWidth = canvas.width - textX - 50;
-
-            // "Estou ouvindo" label
-            ctx.fillStyle = '#7c3aed';
-            ctx.font = 'bold 28px "Segoe UI", sans-serif';
-            ctx.fillText('🎵 Estou ouvindo', textX, 100);
-
-            // Título da música
+            // ===== TÍTULO DA MÚSICA =====
+            const titleY = coverY + coverSize + 80;
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 48px "Segoe UI", sans-serif';
-            ctx.lineWidth = 2;
+            ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
             
-            const title = this._wrapText(music.title, 30);
-            title.forEach((line, i) => {
-                ctx.fillText(line, textX, 200 + i * 60);
+            // Quebrar título em múltiplas linhas se necessário
+            const titleLines = this._wrapText(music.title, 20);
+            titleLines.forEach((line, i) => {
+                ctx.fillText(line, canvas.width / 2, titleY + i * 70);
             });
 
-            // Artista
-            ctx.fillStyle = '#b0b0b0';
-            ctx.font = '32px "Segoe UI", sans-serif';
-            ctx.fillText(music.artist || 'Artista desconhecido', textX, 320);
+            // ===== ARTISTA =====
+            const artistY = titleY + titleLines.length * 70 + 40;
+            ctx.fillStyle = '#d8d8d8';
+            ctx.font = '40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText(music.artist || 'Artista desconhecido', canvas.width / 2, artistY);
 
-            // Tempo de início (se compartilhado de um ponto específico)
+            // ===== TEMPO DE INÍCIO (se houver) =====
             if (startTime > 0) {
-                ctx.fillStyle = '#7c3aed';
-                ctx.font = '20px "Segoe UI", sans-serif';
-                ctx.fillText(`⏱️ Começando em ${this._formatTime(startTime)}`, textX, 380);
+                const timeY = artistY + 70;
+                ctx.fillStyle = '#a78bfa';  // Roxo claro
+                ctx.font = 'italic 28px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                ctx.fillText(`Começando em ${this._formatTime(startTime)}`, canvas.width / 2, timeY);
             }
 
-            // Duração do preview
-            ctx.fillStyle = '#999';
-            ctx.font = '20px "Segoe UI", sans-serif';
-            ctx.fillText('Ouça 30s grátis no Fenda Music', textX, 430);
+            // ===== PREVIEW INFO =====
+            const previewY = canvas.height - 200;
+            ctx.fillStyle = '#f3f4f6';
+            ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText('Ouça 30 segundos grátis', canvas.width / 2, previewY);
 
-            // Logo/branding
-            ctx.fillStyle = '#7c3aed';
-            ctx.font = 'bold 24px "Segoe UI", sans-serif';
-            ctx.fillText('FENDA', textX, canvas.height - 40);
-
-            ctx.fillStyle = '#666';
-            ctx.font = '16px "Segoe UI", sans-serif';
-            ctx.fillText('Gospel Music Streaming', textX + 120, canvas.height - 45);
+            // ===== LOGO FENDA (RODAPÉ) =====
+            const logoY = canvas.height - 80;
+            
+            // Logo text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🎵 FENDA MUSIC', canvas.width / 2, logoY);
+            
+            // Tagline
+            ctx.fillStyle = '#d8b4fe';  // Rosa/roxo claro
+            ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+            ctx.fillText('Gospel Music Streaming', canvas.width / 2, logoY + 40);
 
             return canvas;
         } catch (e) {
@@ -192,42 +196,65 @@ const SharedMusicModule = {
      */
     async _generateGenericImage(music, startTime) {
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 630;
+        canvas.width = 1080;
+        canvas.height = 1350;
         
         const ctx = canvas.getContext('2d');
         
-        // Fundo roxo (cor do Fenda)
-        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-        gradient.addColorStop(0, '#7c3aed');
-        gradient.addColorStop(1, '#5b21b6');
-        ctx.fillStyle = gradient;
+        // Fundo roxo
+        ctx.fillStyle = '#6b21a8';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Padrão de círculos decorativos
+        // Quadrado de placeholder para capa (onde a imagem iria)
+        const coverSize = 600;
+        const coverX = (canvas.width - coverSize) / 2;
+        const coverY = 120;
+        
         ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        for (let i = 0; i < 5; i++) {
-            ctx.beginPath();
-            ctx.arc(200 + i * 200, -100, 150, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // Texto centralizado
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 56px "Segoe UI", sans-serif';
+        ctx.beginPath();
+        this._ensureRoundRect(ctx);
+        ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
+        ctx.fill();
+        
+        // Ícone de nota musical no meio
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.font = 'bold 120px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('🎵', canvas.width / 2, 150);
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎵', canvas.width / 2, coverY + coverSize / 2);
 
-        ctx.font = 'bold 48px "Segoe UI", sans-serif';
-        ctx.fillText(music.title || 'Música', canvas.width / 2, 280);
+        // Título
+        const titleY = coverY + coverSize + 80;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 56px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        
+        const titleLines = this._wrapText(music.title, 20);
+        titleLines.forEach((line, i) => {
+            ctx.fillText(line, canvas.width / 2, titleY + i * 70);
+        });
 
-        ctx.font = '32px "Segoe UI", sans-serif';
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillText(music.artist || 'Artista', canvas.width / 2, 360);
+        // Artista
+        const artistY = titleY + titleLines.length * 70 + 40;
+        ctx.fillStyle = '#d8d8d8';
+        ctx.font = '40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText(music.artist || 'Artista desconhecido', canvas.width / 2, artistY);
 
-        ctx.fillStyle = '#b0b0b0';
-        ctx.font = '24px "Segoe UI", sans-serif';
-        ctx.fillText('Ouça 30s grátis • Fenda Music', canvas.width / 2, 450);
+        // Preview info
+        const previewY = canvas.height - 200;
+        ctx.fillStyle = '#f3f4f6';
+        ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText('Ouça 30 segundos grátis', canvas.width / 2, previewY);
+
+        // Logo
+        const logoY = canvas.height - 80;
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 32px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText('🎵 FENDA MUSIC', canvas.width / 2, logoY);
+        
+        ctx.fillStyle = '#d8b4fe';
+        ctx.font = '18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        ctx.fillText('Gospel Music Streaming', canvas.width / 2, logoY + 40);
 
         return canvas.toDataURL('image/png');
     },
