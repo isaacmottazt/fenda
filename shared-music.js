@@ -133,7 +133,6 @@ const SharedMusicModule = {
     _createShareCanvas(coverImg, music, startTime) {
         try {
             const canvas = document.createElement('canvas');
-            // Reduzir dimensões para evitar problemas de renderização
             canvas.width = 720;
             canvas.height = 900;
             
@@ -146,7 +145,7 @@ const SharedMusicModule = {
             ctx.fillStyle = '#7c3aed';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // CARD - ocupa quase toda tela
+            // CARD
             const cardX = 30;
             const cardY = 30;
             const cardW = 660;
@@ -157,24 +156,29 @@ const SharedMusicModule = {
             ctx.roundRect(cardX, cardY, cardW, cardH, 25);
             ctx.fill();
 
-            // CAPA - muito grande
+            // CAPA COM CLIPPING
             const capeX = 80;
             const capeY = 60;
             const capeW = 560;
             const capeH = 450;
             
+            // Save state ANTES de clipar
+            ctx.save();
             ctx.beginPath();
             ctx.roundRect(capeX, capeY, capeW, capeH, 15);
             ctx.clip();
             ctx.drawImage(coverImg, capeX, capeY, capeW, capeH);
+            // Restore DEPOIS
             ctx.restore();
 
+            // AGORA DESENHAR TEXTO (fora do clipping)
+            
             // TÍTULO
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 32px Arial';
             ctx.textAlign = 'center';
             
-            const titleLines = this._wrapText(music.title, 18);
+            const titleLines = this._wrapText(music.title || 'Título', 18);
             const titleY = 540;
             titleLines.slice(0, 2).forEach((line, i) => {
                 ctx.fillText(line, 360, titleY + i * 38);
@@ -241,10 +245,12 @@ const SharedMusicModule = {
         const capeW = 560;
         const capeH = 450;
         
+        ctx.save();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.beginPath();
         ctx.roundRect(capeX, capeY, capeW, capeH, 15);
         ctx.fill();
+        ctx.restore();
         
         // ÍCONE
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
@@ -258,7 +264,7 @@ const SharedMusicModule = {
         ctx.font = 'bold 32px Arial';
         ctx.textAlign = 'center';
         
-        const titleLines = this._wrapText(music.title, 18);
+        const titleLines = this._wrapText(music.title || 'Título', 18);
         const titleY = 540;
         titleLines.slice(0, 2).forEach((line, i) => {
             ctx.fillText(line, 360, titleY + i * 38);
