@@ -127,83 +127,82 @@ const SharedMusicModule = {
     },
 
     /**
-     * Cria canvas simples e limpo (Fenda Music Card)
+     * Cria canvas simples (dimensões menores para evitar problemas)
      * @private
      */
     _createShareCanvas(coverImg, music, startTime) {
         try {
             const canvas = document.createElement('canvas');
-            canvas.width = 1080;
-            canvas.height = 1350;
+            // Reduzir dimensões para evitar problemas de renderização
+            canvas.width = 720;
+            canvas.height = 900;
             
             const ctx = canvas.getContext('2d');
             if (!ctx) throw new Error('Contexto 2D indisponível');
             
             this._ensureRoundRect(ctx);
             
-            // FUNDO ROXO (background todo)
+            // FUNDO ROXO
             ctx.fillStyle = '#7c3aed';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // CARD CONTAINER (roxo mais claro)
-            const cardX = 50;
-            const cardY = 50;
-            const cardW = 980;
-            const cardH = 1250;
+            // CARD - ocupa quase toda tela
+            const cardX = 30;
+            const cardY = 30;
+            const cardW = 660;
+            const cardH = 840;
             
             ctx.fillStyle = '#8b5cf6';
             ctx.beginPath();
-            ctx.roundRect(cardX, cardY, cardW, cardH, 30);
+            ctx.roundRect(cardX, cardY, cardW, cardH, 25);
             ctx.fill();
 
-            // CAPA - GRANDE (principal elemento)
-            const capeX = 150;
-            const capeY = 120;
-            const capeW = 780;
-            const capeH = 780;
+            // CAPA - muito grande
+            const capeX = 80;
+            const capeY = 60;
+            const capeW = 560;
+            const capeH = 450;
             
             ctx.beginPath();
-            ctx.roundRect(capeX, capeY, capeW, capeH, 20);
+            ctx.roundRect(capeX, capeY, capeW, capeH, 15);
             ctx.clip();
             ctx.drawImage(coverImg, capeX, capeY, capeW, capeH);
             ctx.restore();
 
-            // TÍTULO - embaixo da capa
+            // TÍTULO
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 48px Arial, sans-serif';
+            ctx.font = 'bold 32px Arial';
             ctx.textAlign = 'center';
             
-            const titleLines = this._wrapText(music.title, 20);
-            const titleY = 950;
+            const titleLines = this._wrapText(music.title, 18);
+            const titleY = 540;
             titleLines.slice(0, 2).forEach((line, i) => {
-                ctx.fillText(line, 540, titleY + i * 55);
+                ctx.fillText(line, 360, titleY + i * 38);
             });
 
             // ARTISTA
             ctx.fillStyle = '#d1d5db';
-            ctx.font = '32px Arial, sans-serif';
-            const artistY = titleY + (titleLines.length > 1 ? 110 : 55);
-            ctx.fillText(music.artist || 'Artista', 540, artistY);
+            ctx.font = '24px Arial';
+            const artistY = titleY + (titleLines.length > 1 ? 76 : 38) + 10;
+            ctx.fillText(music.artist || 'Artista', 360, artistY);
 
-            // LOGO + TEXTO (embaixo)
-            const footerY = 1190;
+            // LOGO + TEXTO
+            const footerY = 800;
             
             if (this._fendaLogoCache) {
-                // Logo + texto lado a lado
-                const logoSize = 45;
-                const logoX = 280;
+                const logoSize = 35;
+                const logoX = 200;
                 ctx.drawImage(this._fendaLogoCache, logoX, footerY - logoSize/2, logoSize, logoSize);
                 
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 36px Arial, sans-serif';
+                ctx.font = 'bold 26px Arial';
                 ctx.textAlign = 'left';
-                ctx.fillText('Fenda Music', logoX + logoSize + 20, footerY + 8);
+                ctx.fillText('Fenda Music', logoX + logoSize + 15, footerY + 6);
             } else {
-                // Fallback texto só
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 36px Arial, sans-serif';
+                ctx.font = 'bold 26px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('Fenda Music', 540, footerY);
+                ctx.fillText('Fenda Music', 360, footerY);
             }
 
             return canvas;
@@ -219,8 +218,8 @@ const SharedMusicModule = {
      */
     async _generateGenericImage(music, startTime) {
         const canvas = document.createElement('canvas');
-        canvas.width = 1080;
-        canvas.height = 1350;
+        canvas.width = 720;
+        canvas.height = 900;
         
         const ctx = canvas.getContext('2d');
         
@@ -233,61 +232,61 @@ const SharedMusicModule = {
         // CARD
         ctx.fillStyle = '#8b5cf6';
         ctx.beginPath();
-        ctx.roundRect(50, 50, 980, 1250, 30);
+        ctx.roundRect(30, 30, 660, 840, 25);
         ctx.fill();
 
-        // PLACEHOLDER CAPA (grande)
-        const capeX = 150;
-        const capeY = 120;
-        const capeW = 780;
-        const capeH = 780;
+        // PLACEHOLDER CAPA
+        const capeX = 80;
+        const capeY = 60;
+        const capeW = 560;
+        const capeH = 450;
         
         ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.beginPath();
-        ctx.roundRect(capeX, capeY, capeW, capeH, 20);
+        ctx.roundRect(capeX, capeY, capeW, capeH, 15);
         ctx.fill();
         
         // ÍCONE
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.font = 'bold 100px Arial';
+        ctx.font = 'bold 80px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('🎵', 540, capeY + capeH / 2);
+        ctx.fillText('🎵', 360, capeY + capeH / 2);
 
         // TÍTULO
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 48px Arial, sans-serif';
+        ctx.font = 'bold 32px Arial';
         ctx.textAlign = 'center';
         
-        const titleLines = this._wrapText(music.title, 20);
-        const titleY = 950;
+        const titleLines = this._wrapText(music.title, 18);
+        const titleY = 540;
         titleLines.slice(0, 2).forEach((line, i) => {
-            ctx.fillText(line, 540, titleY + i * 55);
+            ctx.fillText(line, 360, titleY + i * 38);
         });
 
         // ARTISTA
         ctx.fillStyle = '#d1d5db';
-        ctx.font = '32px Arial, sans-serif';
-        const artistY = titleY + (titleLines.length > 1 ? 110 : 55);
-        ctx.fillText(music.artist || 'Artista', 540, artistY);
+        ctx.font = '24px Arial';
+        const artistY = titleY + (titleLines.length > 1 ? 76 : 38) + 10;
+        ctx.fillText(music.artist || 'Artista', 360, artistY);
 
         // LOGO + TEXTO
-        const footerY = 1190;
+        const footerY = 800;
         
         if (this._fendaLogoCache) {
-            const logoSize = 45;
-            const logoX = 280;
+            const logoSize = 35;
+            const logoX = 200;
             ctx.drawImage(this._fendaLogoCache, logoX, footerY - logoSize/2, logoSize, logoSize);
             
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 36px Arial, sans-serif';
+            ctx.font = 'bold 26px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText('Fenda Music', logoX + logoSize + 20, footerY + 8);
+            ctx.fillText('Fenda Music', logoX + logoSize + 15, footerY + 6);
         } else {
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 36px Arial, sans-serif';
+            ctx.font = 'bold 26px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Fenda Music', 540, footerY);
+            ctx.fillText('Fenda Music', 360, footerY);
         }
 
         return canvas.toDataURL('image/png');
